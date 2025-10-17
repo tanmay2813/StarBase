@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StarBase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: none; /* Prevents pull-to-refresh on mobile */
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .telemetry-value {
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
+        }
+        /* Custom styles for the slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+            width: 100%;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #2d3748;
+            border-radius: 5px;
+            border: 1px solid #4a5568;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            border: 1px solid #4a5568;
+            height: 24px;
+            width: 12px;
+            border-radius: 3px;
+            background: #a0aec0;
+            cursor: pointer;
+            margin-top: -9px;
+            box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+        }
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #2d3748;
+            border-radius: 5px;
+            border: 1px solid #4a5568;
+        }
+        input[type=range]::-moz-range-thumb {
+            border: 1px solid #4a5568;
+            height: 24px;
+            width: 12px;
+            border-radius: 3px;
+            background: #a0aec0;
+            cursor: pointer;
+            box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col h-full overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-gray-800/50 backdrop-blur-sm p-3 border-b border-gray-700 shadow-lg z-20">
+        <h1 class="text-xl md:text-2xl font-bold font-orbitron text-cyan-400 text-center tracking-widest">StarBase</h1>
+    </header>
+    <div id="hangar-dashboard" class="absolute inset-0 bg-gray-900/95 backdrop-blur-md z-30 flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-4xl border border-cyan-500/50">
+            <h2 class="text-3xl font-bold font-orbitron text-cyan-400 mb-6 text-center">ROCKET HANGAR SELECTION 🧑‍🚀</h2>
+            <div id="rocket-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                </div>
+             <p class="text-center text-gray-500 mt-4">Select a vehicle to begin your mission!</p>
+        </div>
+    </div>
+    <div>
+        <script>
+            const hangarDashboard = document.getElementById('hangar-dashboard');
+            const rocketListContainer = document.getElementById('rocket-list');
+
+           </script>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
+
+        <!-- Simulation View -->
+        <main class="flex-1 bg-black relative overflow-hidden" >
+            <canvas id="simulationCanvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+            <div id="altitude-indicator" class="absolute top-4 right-4 text-white p-2 rounded-lg bg-black/50 backdrop-blur-sm text-right">
+                <span class="text-sm text-cyan-400">ALTITUDE</span>
+                <div id="altitude-value" class="telemetry-value text-2xl">0 m</div>
+            </div>
+             <div id="message-display" class="absolute bottom-4 left-4 text-yellow-400 font-bold p-2 rounded-lg bg-black/50 backdrop-blur-sm"></div>
+        </main>
+
+        <!-- Control Panel -->
+        <aside class="w-full md:w-80 lg:w-96 bg-gray-800 p-4 border-l border-gray-700 shadow-2xl z-10 overflow-y-auto">
+            <div class="grid grid-cols-1 gap-4">
+
+                <!-- System Status -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">SYSTEM STATUS</h2>
+                    <div class="flex justify-between items-center">
+                        <span class="text-md">STATUS:</span>
+                        <span id="status-light" class="w-4 h-4 rounded-full bg-red-500 inline-block mr-2 animate-pulse"></span>
+                        <span id="status-text" class="font-bold font-orbitron text-red-500">STANDBY</span>
+                    </div>
+                     <div class="text-sm mt-2">
+                        <span>ELAPSED: </span><span id="time-elapsed" class="telemetry-value">00:00:00</span>
+                    </div>
+                </div>
+
+                <!-- Telemetry Data -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">TELEMETRY</h2>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div>Velocity: <span id="velocity" class="telemetry-value block text-lg">0 m/s</span></div>
+                        <div>Max Altitude: <span id="max-altitude" class="telemetry-value block text-lg">0 m</span></div>
+                        <div>Thrust: <span id="thrust" class="telemetry-value block text-lg">0 kN</span></div>
+                        <div>TWR: <span id="twr" class="telemetry-value block text-lg">0.00</span></div>
+                        <div>Total Mass: <span id="total-mass" class="telemetry-value block text-lg">0 kg</span></div>
+                        <div>Apogee: <span id="apogee" class="telemetry-value block text-lg">N/A</span></div>
+                    </div>
+                </div>
+
+                <!-- Staging Info -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">STAGING</h2>
+                    <div id="staging-container">
+                        <!-- Staging info will be dynamically generated here -->
+                    </div>
+                </div>
+                
+                <!-- Flight Data Recorder -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">FLIGHT DATA RECORDER</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-sm text-center mb-1 text-gray-400">Altitude (m) vs. Time (s)</h3>
+                            <canvas id="altitudeChart"></canvas>
+                        </div>
+                        <div>
+                            <h3 class="text-sm text-center mb-1 text-gray-400">Velocity (m/s) vs. Time (s)</h3>
+                            <canvas id="velocityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">CONTROLS</h2>
+                    
+                    <!-- Throttle -->
+                    <div class="mb-4">
+                        <label for="throttle-slider" class="block mb-1 text-sm">THROTTLE (<span id="throttle-value">0</span>%)</label>
+                        <input type="range" id="throttle-slider" min="0" max="100" value="0" class="w-full">
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <button id="ignition-button" class="w-full p-3 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">IGNITION</button>
+                        <button id="stage-button" class="w-full p-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>STAGE</button>
+                    </div>
+                    
+                    <!-- Engine Control -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <button id="engine-shutdown" class="w-full p-2 bg-orange-600 hover:bg-orange-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>ENGINE CUT</button>
+                        <button id="abort-button" class="w-full p-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>ABORT</button>
+                    </div>
+                    
+                    <!-- Gimbal Control -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-bold">GIMBAL CONTROL</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label for="pitch-slider" class="block mb-1 text-xs">PITCH (<span id="pitch-value">0</span>°)</label>
+                                <input type="range" id="pitch-slider" min="-15" max="15" value="0" class="w-full">
+                            </div>
+                            <div>
+                                <label for="yaw-slider" class="block mb-1 text-xs">YAW (<span id="yaw-value">0</span>°)</label>
+                                <input type="range" id="yaw-slider" min="-15" max="15" value="0" class="w-full">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                 <!-- Simulation Control -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                     <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">SIMULATION</h2>
+                     
+                     <!-- Time Control -->
+                     <div class="mb-3">
+                        <label for="time-scale" class="block mb-1 text-sm">TIME SCALE (<span id="time-scale-value">1.0</span>x)</label>
+                        <input type="range" id="time-scale" min="0.1" max="5" step="0.1" value="1" class="w-full">
+                     </div>
+                     
+                     <!-- Camera Zoom -->
+                     <div class="mb-3">
+                        <label for="zoom-slider" class="block mb-1 text-sm">CAMERA ZOOM (<span id="zoom-value">1.0</span>x)</label>
+                        <input type="range" id="zoom-slider" min="0.2" max="3" step="0.1" value="1" class="w-full">
+                     </div>
+                     
+                     <div class="grid grid-cols-2 gap-3">
+                        <button id="pause-button" class="w-full p-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-bold transition-all duration-200">PAUSE</button>
+                        <button id="reset-button" class="w-full p-2 bg-red-700 hover:bg-red-600 rounded-lg font-bold transition-all duration-200">RESET</button>
+                     </div>
+                </div>
+
+            </div>
+        </aside>
+
+    </div>
+
+    <script>
+        
+        document.addEventListener('DOMContentLoaded', () => {
+        
+const ROCKET_BLUEPRINTS = [
+    {
+        id: 'basic-test-rocket',
+        name: 'Basic Test Rocket 🧪',
+        description: 'A simple two-stage liquid-fueled rocket for suborbital tests.',
+        payloadMass: 500, 
+        stages: [
+            // Stage 1: Booster
+            { name: 'Booster', dryMass: 1500, initialFuelMass: 10000, maxThrust: 800000, visualHeight: 50 },
+            // Stage 2: Sustainer
+            { name: 'Sustainer', dryMass: 800, initialFuelMass: 8000, maxThrust: 300000, visualHeight: 30 },
+        ],
+    },
+    {
+        id: 'heavy-lift',
+        name: 'Heavy-Lift Vehicle 🛰️',
+        description: 'A powerful rocket with extra stages for heavy payloads.',
+        payloadMass: 5000, // The heavy payload mass
+        stages: [
+            // Stage 1: Solid Rocket Boosters (SRB)
+            { name: 'SRB-L', dryMass: 2000, initialFuelMass: 15000, maxThrust: 1000000, visualHeight: 40 },
+            // Stage 2: Core Stage
+            { name: 'Core Stage', dryMass: 5000, initialFuelMass: 40000, maxThrust: 2000000, visualHeight: 80 },
+            // Stage 3: Upper Stage
+            { name: 'Upper Stage', dryMass: 1000, initialFuelMass: 12000, maxThrust: 500000, visualHeight: 35 },
+        ],
+    },
+];
+
+
+let selectedRocketBlueprint = null; 
+
+
+           
+
+            // --- DOM Elements ---
+            const canvas = document.getElementById('simulationCanvas');
+            const ctx = canvas.getContext('2d');
+            const altitudeChartCtx = document.getElementById('altitudeChart').getContext('2d');
+            const velocityChartCtx = document.getElementById('velocityChart').getContext('2d');
+
+            // ... (rest of DOM element declarations)
+            const altitudeValue = document.getElementById('altitude-value');
+            const velocity = document.getElementById('velocity');
+            const maxAltitude = document.getElementById('max-altitude');
+            const thrust = document.getElementById('thrust');
+            const twr = document.getElementById('twr');
+            const totalMass = document.getElementById('total-mass');
+            const apogee = document.getElementById('apogee');
+            const timeElapsed = document.getElementById('time-elapsed');
+            const statusLight = document.getElementById('status-light');
+            const statusText = document.getElementById('status-text');
+            const stagingContainer = document.getElementById('staging-container');
+            const throttleSlider = document.getElementById('throttle-slider');
+            const throttleValue = document.getElementById('throttle-value');
+            const ignitionButton = document.getElementById('ignition-button');
+            const stageButton = document.getElementById('stage-button');
+            const resetButton = document.getElementById('reset-button');
+            const messageDisplay = document.getElementById('message-display');
+            
+            // New control elements
+            const engineShutdownButton = document.getElementById('engine-shutdown');
+            const abortButton = document.getElementById('abort-button');
+            const pitchSlider = document.getElementById('pitch-slider');
+            const pitchValue = document.getElementById('pitch-value');
+            const yawSlider = document.getElementById('yaw-slider');
+            const yawValue = document.getElementById('yaw-value');
+            const timeScaleSlider = document.getElementById('time-scale');
+            const timeScaleValue = document.getElementById('time-scale-value');
+            const zoomSlider = document.getElementById('zoom-slider');
+            const zoomValue = document.getElementById('zoom-value');
+            const pauseButton = document.getElementById('pause-button');
+
+            // --- Simulation Constants ---
+            const G = 9.81; // Gravitational acceleration (m/s^2)
+            // INCREASED: from 0.1 to 0.5 for better visual feedback.
+            const PIXELS_PER_METER = 0.5; // Visual scaling 
+            const NOSE_HEIGHT = 20; // Fixed height for the nose cone in pixels
+
+            // --- Simulation State ---
+            let simState;
+            let altitudeChart, velocityChart;
+
+            function getDefaultSimState() {
+                return {
+                    running: false,
+                    launched: false,
+                    startTime: 0,
+                    lastFrameTime: 0,
+                    lastDataLogTime: 0,
+                    
+                    rocket: {
+                        x: 0,
+                        y: 0, // y-position in meters from ground
+                        vx: 0, // velocity x in m/s
+                        vy: 0, // velocity y in m/s
+                        ax: 0, // acceleration x in m/s^2
+                        ay: 0, // acceleration y in m/s^2
+                        
+                        currentStage: 0,
+                        totalMass: 0, // kg
+                        throttle: 0, // 0 to 1
+                        pitch: 0, // gimbal pitch in degrees
+                        yaw: 0, // gimbal yaw in degrees
+                        engineShutdown: false,
+                        
+                        stages: [
+                            // Added visualHeight for dynamic drawing
+                            { name: 'SRB', dryMass: 1500, fuelMass: 10000, maxThrust: 800000, active: false, separated: false, visualHeight: 50 },
+                            { name: 'S-I', dryMass: 2000, fuelMass: 25000, maxThrust: 1200000, active: false, separated: false, visualHeight: 40 },
+                            { name: 'S-II', dryMass: 800, fuelMass: 8000, maxThrust: 300000, active: false, separated: false, visualHeight: 30 },
+                        ],
+                        
+                        width: 30, // fixed width for visualization (increased for better visibility)
+                        height: 0, // dynamic height (will be calculated)
+                    },
+
+                    camera: {
+                        y: 0,
+                        zoom: 1.0,
+                    },
+                    
+                    simulation: {
+                        timeScale: 1.0,
+                        paused: false,
+                        aborted: false,
+                    },
+                    
+                    stats: {
+                        maxAltitude: 0,
+                        apogee: 0,
+                    },
+                    
+                    messages: [],
+
+                    flightData: {
+                        time: [],
+                        altitude: [],
+                        velocity: [],
+                        positions: [], // Store x,y positions for flight path
+                    },
+
+                    crash: {
+                        crashed: false,
+                        explosionTime: 0,
+                        particles: [],
+                    },
+                };
+            }
+
+            // --- Initialization ---
+            // --- Initialization ---
+            function init() {
+                // 1. Check if a rocket has been selected. If not, show the hangar!
+                if (!selectedRocketBlueprint) {
+                    renderHangarDashboard();
+                    hangarDashboard.classList.remove('hidden');
+                    return; // Stop initialization until a rocket is selected
+                }
+                
+                simState = getDefaultSimState();
+                
+                // 2. Load the stages and mass from the selected blueprint
+                simState.rocket.stages = selectedRocketBlueprint.stages.map(s => ({
+                    ...s, // Copy all properties from the blueprint
+                    fuelMass: s.initialFuelMass, // Set current fuel to initial
+                    active: false,
+                    separated: false,
+                }));
+                
+                // Set the non-jettisonable payload mass
+                simState.rocket.baseMass = selectedRocketBlueprint.payloadMass;
+
+                // 3. Continue the rest of the original initialization
+                simState.rocket.stages.forEach(s => { s.initialFuelMass = s.fuelMass; });
+                calculateTotalMass();
+                updateRocketVisualHeight(); // Calculate initial visual height
+                updateUI();
+                updateStagingUI();
+
+                throttleSlider.value = 0;
+                pitchSlider.value = 0;
+                yawSlider.value = 0;
+                timeScaleSlider.value = 1;
+                zoomSlider.value = 1;
+                ignitionButton.disabled = false;
+                stageButton.disabled = true; // Disable until launched
+                engineShutdownButton.disabled = true;
+                abortButton.disabled = true;
+
+                initCharts();
+                resizeCanvas();
+                requestAnimationFrame(gameLoop);
+            }
+            
+            // Calculates the total visual height of the rocket based on unseparated stages
+            function updateRocketVisualHeight() {
+                const totalStageHeight = simState.rocket.stages
+                    .filter(s => !s.separated)
+                    .reduce((sum, stage) => sum + stage.visualHeight, 0);
+                // Total height is sum of stage heights plus the fixed nose cone height
+                simState.rocket.height = totalStageHeight + NOSE_HEIGHT; 
+            }
+
+            // --- Chart Initialization ---
+            function createChartConfig(label, color) {
+                return {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: label,
+                            data: [],
+                            borderColor: color,
+                            backgroundColor: `${color}33`, // transparent version
+                            borderWidth: 1.5,
+                            fill: true,
+                            pointRadius: 0,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        animation: false,
+                        scales: {
+                            x: { ticks: { color: '#9ca3af' }, grid: { color: '#4b5563' } },
+                            y: { ticks: { color: '#9ca3af' }, grid: { color: '#4b5563' } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                };
+            }
+
+            function initCharts() {
+                if(altitudeChart) altitudeChart.destroy();
+                if(velocityChart) velocityChart.destroy();
+                altitudeChart = new Chart(altitudeChartCtx, createChartConfig('Altitude', '#34d399'));
+                velocityChart = new Chart(velocityChartCtx, createChartConfig('Velocity', '#60a5fa'));
+            }
+
+
+            // --- Game Loop ---
+            function gameLoop(currentTime) {
+                if (!simState.lastFrameTime) {
+                    simState.lastFrameTime = currentTime;
+                }
+                const deltaTime = (currentTime - simState.lastFrameTime) / 1000 * simState.simulation.timeScale; // in seconds with time scale
+
+                if (simState.running && !simState.simulation.paused) {
+                    updatePhysics(deltaTime);
+                }
+
+                draw();
+                updateUI();
+                
+                simState.lastFrameTime = currentTime;
+                requestAnimationFrame(gameLoop);
+            }
+
+            // --- Physics Engine ---
+            function updatePhysics(dt) {
+                if (!simState.launched) return;
+
+                const activeStages = simState.rocket.stages.filter(s => s.active && !s.separated);
+                
+                let currentThrust = 0;
+                let fuelConsumed = 0;
+                let isCurrentStageSpent = true; // Assume spent until proven otherwise
+
+                activeStages.forEach(stage => {
+                    if (stage.fuelMass > 0 && !simState.rocket.engineShutdown) {
+                        const stageThrust = stage.maxThrust * simState.rocket.throttle;
+                        
+                        // Apply gimbal control (convert degrees to radians)
+                        const pitchRad = simState.rocket.pitch * Math.PI / 180;
+                        const yawRad = simState.rocket.yaw * Math.PI / 180;
+                        
+                        // Thrust components
+                        const thrustY = stageThrust * Math.cos(pitchRad);
+                        const thrustX = stageThrust * Math.sin(yawRad) * Math.cos(pitchRad);
+                        
+                        currentThrust += thrustY; // Vertical thrust
+                        simState.rocket.ax += thrustX / simState.rocket.totalMass; // Horizontal acceleration
+                        
+                        isCurrentStageSpent = false;
+                        
+                        // New fuel consumption rate based on a simplified exhaust velocity (Isp proxy).
+                        const massFlowRatePerMaxThrust = stage.maxThrust / 5000;
+                        const consumed = massFlowRatePerMaxThrust * simState.rocket.throttle * dt; 
+                        
+                        stage.fuelMass -= consumed;
+                        fuelConsumed += consumed;
+                        if (stage.fuelMass <= 0) {
+                            stage.fuelMass = 0;
+                            logMessage(`${stage.name} fuel depleted. Awaiting separation.`);
+                        }
+                    }
+                });
+
+                simState.rocket.totalMass -= fuelConsumed;
+                const gravitationalForce = simState.rocket.totalMass * G;
+                const netForce = currentThrust - gravitationalForce;
+                
+                // Calculate acceleration (with a small buffer to prevent division by zero in edge cases)
+                simState.rocket.ay = simState.rocket.totalMass > 1 ? netForce / simState.rocket.totalMass : -G; 
+                simState.rocket.vy += simState.rocket.ay * dt;
+                simState.rocket.y += simState.rocket.vy * dt;
+                simState.rocket.vx += simState.rocket.ax * dt;
+                simState.rocket.x += simState.rocket.vx * dt;
+                
+                // Reset horizontal acceleration for next frame
+                simState.rocket.ax = 0;
+
+                // Ground collision detection
+                if (simState.rocket.y < 0) {
+                    simState.rocket.y = 0;
+                    simState.rocket.vy = 0;
+                    simState.rocket.ay = 0;
+                    simState.running = false;
+                    setStatus('CRASHED', 'red', false);
+                    logMessage('Mission Failure: Vehicle has crashed.');
+                    simState.crash.crashed = true;
+                    simState.crash.explosionTime = performance.now();
+                    createExplosionParticles();
+                }
+                
+                // Max Altitude Tracking
+                if (simState.rocket.y > simState.stats.maxAltitude) {
+                    simState.stats.maxAltitude = simState.rocket.y;
+                }
+
+                // Apogee Calculation (only when thrust is zero and velocity is positive)
+                if (currentThrust === 0 && simState.rocket.vy > 0) {
+                    const timeToApogee = simState.rocket.vy / G;
+                    simState.stats.apogee = simState.rocket.y + (simState.rocket.vy * timeToApogee) - (0.5 * G * timeToApogee * timeToApogee);
+                } else {
+                    simState.stats.apogee = 0;
+                }
+                
+                // AUTOMATIC STAGING check
+                const nextStageIndex = simState.rocket.currentStage + 1;
+                const canAutoStage = nextStageIndex < simState.rocket.stages.length && isCurrentStageSpent;
+                if (canAutoStage) {
+                    handleStageSeparation(true); // Auto stage when fuel depleted
+                }
+
+                // Data logging for graphs
+                const elapsed = (performance.now() - simState.startTime) / 1000;
+                if (elapsed - simState.lastDataLogTime > 0.5) {
+                    simState.flightData.time.push(elapsed.toFixed(1));
+                    simState.flightData.altitude.push(simState.rocket.y);
+                    simState.flightData.velocity.push(simState.rocket.vy);
+                    simState.flightData.positions.push({x: simState.rocket.x, y: simState.rocket.y});
+                    simState.lastDataLogTime = elapsed;
+                    updateGraphs();
+                }
+            }
+            
+            function updateGraphs() {
+                altitudeChart.data.labels = simState.flightData.time;
+                altitudeChart.data.datasets[0].data = simState.flightData.altitude;
+                altitudeChart.update();
+                
+                velocityChart.data.labels = simState.flightData.time;
+                velocityChart.data.datasets[0].data = simState.flightData.velocity;
+                velocityChart.update();
+            }
+
+            function calculateTotalMass() {
+                simState.rocket.totalMass = simState.rocket.stages
+                    .filter(s => !s.separated)
+                    .reduce((sum, stage) => sum + stage.dryMass + stage.fuelMass, 0);
+            }
+
+            // --- Drawing ---
+            function draw() {
+                ctx.save();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Camera follows the rocket's altitude but keeps rocket centered
+                simState.camera.y = simState.rocket.y * PIXELS_PER_METER;
+                const canvasWidth = canvas.offsetWidth || canvas.width;
+                const canvasHeight = canvas.offsetHeight || canvas.height;
+                
+                // Keep rocket in center of screen and apply zoom
+                ctx.translate(canvasWidth / 2, canvasHeight / 2);
+                ctx.scale(simState.camera.zoom, simState.camera.zoom);
+                
+                // Apply rocket position offset for horizontal movement
+                ctx.translate(-simState.rocket.x * PIXELS_PER_METER, 0);
+
+                drawBackground();
+                drawEnvironmentalEffects();
+                drawLaunchpad();
+                drawAltitudeMarkers();
+                
+                if (simState.crash.crashed) {
+                    drawExplosion();
+                } else {
+                    drawFlightPath();
+                    drawVelocityVector();
+                    drawRocket();
+                    if (simState.launched && simState.rocket.throttle > 0) {
+                        const activeStages = simState.rocket.stages.filter(s => s.active && s.fuelMass > 0);
+                        if (activeStages.length > 0) {
+                            drawFlame();
+                        }
+                    }
+                }
+                
+                ctx.restore();
+                drawStarfield(simState.rocket.y);
+            }
+
+            function createExplosionParticles() {
+                const particleCount = 100;
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Math.random() * 80 + 20;
+                    simState.crash.particles.push({
+                        x: 0,
+                        y: 0,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 1, // 1 = 100% life
+                        color: ['#ffa500', '#ff4500', '#ff6347', '#d3d3d3', '#a9a9a9'][Math.floor(Math.random() * 5)]
+                    });
+                }
+            }
+            
+            function drawExplosion() {
+                const explosionDuration = 2000; // 2 seconds
+                const dt = (performance.now() - simState.lastFrameTime) / 1000;
+                
+                // Remove dead particles
+                simState.crash.particles = simState.crash.particles.filter(p => p.life > 0);
+                
+                simState.crash.particles.forEach(p => {
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.vy += G * 5 * dt; // Gravity on particles (exaggerated for effect)
+                    p.life -= dt / 2; // Particle life decreases over 2 seconds
+                    
+                    if (p.life > 0) {
+                        ctx.fillStyle = `${p.color}${Math.floor(p.life * 255).toString(16).padStart(2, '0')}`;
+                        ctx.beginPath();
+                        ctx.arc(p.x, -p.y, 2 + p.life * 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+            }
+
+
+            function drawBackground() {
+                const skyColor = getSkyColor(simState.rocket.y);
+                const canvasWidth = canvas.offsetWidth || canvas.width;
+                const canvasHeight = canvas.offsetHeight || canvas.height;
+                ctx.fillStyle = skyColor;
+                // Fill entire background
+                ctx.fillRect(-canvasWidth/2, -canvasHeight/2, canvasWidth, canvasHeight);
+            }
+            
+            function drawEnvironmentalEffects() {
+                const altitude = simState.rocket.y;
+                const canvasWidth = canvas.offsetWidth || canvas.width;
+                const canvasHeight = canvas.offsetHeight || canvas.height;
+                
+                // Cloud layers (5km to 15km)
+                if (altitude > 3000 && altitude < 20000) {
+                    ctx.save();
+                    const cloudOpacity = Math.sin((altitude - 3000) / 2000) * 0.3;
+                    if (cloudOpacity > 0) {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${cloudOpacity})`;
+                        for (let i = 0; i < 20; i++) {
+                            const x = (Math.sin(i * 2.34 + altitude * 0.0001) * canvasWidth * 0.8);
+                            const y = (Math.cos(i * 1.78 + altitude * 0.0001) * 50) - simState.camera.y + (i * 40);
+                            const size = 30 + Math.sin(i * 3.45) * 20;
+                            ctx.beginPath();
+                            ctx.arc(x, y, size, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    ctx.restore();
+                }
+                
+                // Atmosphere density visualization
+                if (altitude < 100000) {
+                    const density = Math.max(0, 1 - altitude / 100000);
+                    const atmosphereColor = `rgba(135, 206, 250, ${density * 0.1})`;
+                    ctx.fillStyle = atmosphereColor;
+                    ctx.fillRect(-canvasWidth/2, -canvasHeight/2, canvasWidth, canvasHeight);
+                }
+            }
+            
+            function drawAltitudeMarkers() {
+                const canvasWidth = canvas.offsetWidth || canvas.width;
+                const altitude = simState.rocket.y;
+                
+                // Draw altitude markers on the right side
+                ctx.save();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.font = '12px Orbitron';
+                ctx.textAlign = 'left';
+                
+                // Major altitude markers every 10km
+                for (let alt = 0; alt <= 200000; alt += 10000) {
+                    const y = (alt - altitude) * PIXELS_PER_METER;
+                    if (Math.abs(y) < canvas.height) {
+                        ctx.fillRect(canvasWidth/2 - 60, y - 1, 40, 2);
+                        ctx.fillText(`${alt/1000}km`, canvasWidth/2 - 55, y + 4);
+                    }
+                }
+                
+                // Minor markers every 1km
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                for (let alt = 0; alt <= 200000; alt += 1000) {
+                    if (alt % 10000 !== 0) {
+                        const y = (alt - altitude) * PIXELS_PER_METER;
+                        if (Math.abs(y) < canvas.height) {
+                            ctx.fillRect(canvasWidth/2 - 50, y, 20, 1);
+                        }
+                    }
+                }
+                ctx.restore();
+            }
+
+            function drawStarfield(altitude) {
+                const transitionStart = 50000;
+                const transitionEnd = 100000;
+                let opacity = 0;
+
+                if (altitude > transitionStart) {
+                    opacity = Math.min(1, (altitude - transitionStart) / (transitionEnd - transitionStart));
+                }
+
+                if (opacity > 0) {
+                    ctx.save();
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    const starCount = 200;
+                    const canvasWidth = canvas.offsetWidth || canvas.width;
+                    const canvasHeight = canvas.offsetHeight || canvas.height;
+                    for (let i = 0; i < starCount; i++) {
+                        // These calculations use fixed screen coordinates to keep the stars still
+                        const x = (Math.sin(i * 1.23) * canvasWidth/2 * 1.5 + canvasWidth/2);
+                        const y = (Math.cos(i * 3.45) * canvasHeight * 1.5) % canvasHeight;
+                        const size = Math.pow(Math.sin(i * 5.67), 4) * 2;
+                        ctx.fillRect(x, y, size, size);
+                    }
+                    ctx.restore();
+                }
+            }
+
+
+            function getSkyColor(altitude) {
+                // Color transition from blue sky to black space
+                const maxAlt = 100000;
+                const t = Math.min(1, altitude / maxAlt);
+                const r = Math.floor(66 * (1 - t));
+                const g = Math.floor(134 * (1 - t));
+                const b = Math.floor(244 * (1 - t));
+                return `rgb(${r},${g},${b})`;
+            }
+
+            function drawLaunchpad() {
+                const canvasWidth = canvas.offsetWidth || canvas.width;
+                const canvasHeight = canvas.offsetHeight || canvas.height;
+                const groundY = canvasHeight * 0.8; // Fixed ground position
+                const towerHeight = 150;
+                const towerWidth = 30;
+                
+                // Only draw ground and tower if we're close to ground level
+                const groundVisibilityRange = 2000; // meters
+                if (simState.rocket.y < groundVisibilityRange) {
+                    // Ground (sand/concrete thing) - fixed position
+                    ctx.fillStyle = '#6b4226';
+                    ctx.fillRect(-canvasWidth / 2, groundY - canvasHeight * 0.8 + simState.camera.y, canvasWidth, 1000);
+                    
+                    // Launch tower - fixed position relative to ground
+                    ctx.fillStyle = '#808080';
+                    const towerY = groundY - canvasHeight * 0.8 + simState.camera.y;
+                    ctx.fillRect(-towerWidth / 2 - 50, towerY - towerHeight, towerWidth, towerHeight);
+                    ctx.fillStyle = '#606060';
+                    for (let i = 0; i < 8; i++) {
+                        ctx.fillRect(-towerWidth/2 - 50, towerY - towerHeight + i * 20, towerWidth, 5);
+                    }
+                }
+            }
+            
+            function drawRocket() {
+                const rocketX = -simState.rocket.width / 2;
+                // Rocket is drawn relative to the translated origin (0, 0)
+                const baseOfRocketY = 0; 
+                
+                ctx.save();
+                ctx.translate(0, baseOfRocketY);
+
+                // Debug: Draw a visible outline around the rocket area
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(rocketX - 5, -simState.rocket.height - 5, simState.rocket.width + 10, simState.rocket.height + 10);
+                ctx.setLineDash([]);
+
+                let currentY = 0; // Tracks the current drawing position (from bottom up)
+
+                // Draw stages from bottom (index 0) to top
+                for (let i = 0; i < simState.rocket.stages.length; i++) {
+                    const stage = simState.rocket.stages[i];
+                    if (!stage.separated) {
+                        const stageHeight = stage.visualHeight;
+                        const stageBottomY = currentY - stageHeight; // Y is negative (up)
+                        
+                        // Draw Stage Body with brighter colors for visibility
+                        ctx.fillStyle = '#ffffff';
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.rect(rocketX, stageBottomY, simState.rocket.width, stageHeight);
+                        ctx.fill();
+                        ctx.stroke();
+                        
+                        // Stage Label
+                        ctx.fillStyle = '#000';
+                        ctx.font = 'bold 12px Orbitron';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(stage.name, 0, stageBottomY + stageHeight / 2 + 4);
+                        
+                        currentY = stageBottomY;
+                    }
+                }
+                
+                // Draw Nose Cone on top of the last remaining stage
+                const noseY = currentY;
+                ctx.fillStyle = '#ff0000';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(rocketX, noseY);
+                ctx.lineTo(rocketX + simState.rocket.width, noseY);
+                ctx.lineTo(rocketX + simState.rocket.width/2, noseY - NOSE_HEIGHT);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            }
+            
+            function drawFlightPath() {
+                if (simState.flightData.positions.length < 2) return;
+                
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+                
+                ctx.beginPath();
+                const positions = simState.flightData.positions;
+                const firstPos = positions[0];
+                ctx.moveTo((firstPos.x - simState.rocket.x) * PIXELS_PER_METER, 
+                          (firstPos.y - simState.rocket.y) * PIXELS_PER_METER);
+                
+                for (let i = 1; i < positions.length; i++) {
+                    const pos = positions[i];
+                    ctx.lineTo((pos.x - simState.rocket.x) * PIXELS_PER_METER, 
+                              (pos.y - simState.rocket.y) * PIXELS_PER_METER);
+                }
+                
+                ctx.stroke();
+                ctx.restore();
+            }
+            
+            function drawVelocityVector() {
+                if (!simState.launched) return;
+                
+                const velocityScale = 0.1; // Scale factor for velocity vector display
+                const vxPixels = simState.rocket.vx * velocityScale;
+                const vyPixels = -simState.rocket.vy * velocityScale; // Negative because canvas Y is inverted
+                
+                if (Math.abs(vxPixels) < 1 && Math.abs(vyPixels) < 1) return;
+                
+                ctx.save();
+                ctx.strokeStyle = '#ffff00';
+                ctx.fillStyle = '#ffff00';
+                ctx.lineWidth = 3;
+                
+                // Draw velocity vector line
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(vxPixels, vyPixels);
+                ctx.stroke();
+                
+                // Draw arrowhead
+                const arrowLength = 10;
+                const angle = Math.atan2(vyPixels, vxPixels);
+                
+                ctx.beginPath();
+                ctx.moveTo(vxPixels, vyPixels);
+                ctx.lineTo(vxPixels - arrowLength * Math.cos(angle - Math.PI/6), 
+                          vyPixels - arrowLength * Math.sin(angle - Math.PI/6));
+                ctx.lineTo(vxPixels - arrowLength * Math.cos(angle + Math.PI/6), 
+                          vyPixels - arrowLength * Math.sin(angle + Math.PI/6));
+                ctx.closePath();
+                ctx.fill();
+                
+                // Display velocity magnitude
+                const totalVel = Math.sqrt(simState.rocket.vx**2 + simState.rocket.vy**2);
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+                ctx.font = '12px Orbitron';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${totalVel.toFixed(1)} m/s`, vxPixels + 15, vyPixels + 5);
+                
+                ctx.restore();
+            }
+
+            function drawFlame() {
+                const rocketX = -simState.rocket.width / 2;
+                // Flame starts at the bottom of the current rocket body (baseOfRocketY = 0 after translate)
+                const baseOfRocket = 0; 
+                
+                const flameLength = (50 + Math.random() * 10) * simState.rocket.throttle;
+                
+                ctx.save();
+                ctx.translate(0, baseOfRocket);
+                
+                // Inner Yellow Flame
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.9)';
+                ctx.beginPath();
+                ctx.moveTo(rocketX + simState.rocket.width / 2 - 4, 0);
+                ctx.lineTo(rocketX + simState.rocket.width / 2 + 4, 0);
+                ctx.lineTo(rocketX + simState.rocket.width / 2, flameLength * 0.7);
+                ctx.closePath();
+                ctx.fill();
+
+                // Outer Orange Flame
+                ctx.fillStyle = 'rgba(255, 165, 0, 0.8)';
+                ctx.beginPath();
+                ctx.moveTo(rocketX, 0);
+                ctx.lineTo(rocketX + simState.rocket.width, 0);
+                ctx.lineTo(rocketX + simState.rocket.width / 2, flameLength);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            function updateUI() {
+                const fmt = (val, unit, dec = 0) => val.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + unit;
+                altitudeValue.textContent = fmt(simState.rocket.y, ' m');
+                velocity.textContent = fmt(simState.rocket.vy, ' m/s');
+                maxAltitude.textContent = fmt(simState.stats.maxAltitude, ' m');
+                
+                const activeStages = simState.rocket.stages.filter(s => s.active);
+                const currentThrust = activeStages.reduce((sum, stage) => {
+                    // Only produce thrust if fuel is present
+                    return sum + (stage.fuelMass > 0 ? stage.maxThrust * simState.rocket.throttle : 0);
+                }, 0);
+                
+                thrust.textContent = fmt(currentThrust / 1000, ' kN');
+                const currentTWR = simState.rocket.totalMass > 0 ? currentThrust / (simState.rocket.totalMass * G) : 0;
+                twr.textContent = currentTWR.toFixed(2);
+                totalMass.textContent = fmt(simState.rocket.totalMass, ' kg');
+                apogee.textContent = simState.stats.apogee > 0 ? fmt(simState.stats.apogee, ' m') : 'N/A';
+
+                if (simState.running) {
+                    const elapsed = (performance.now() - simState.startTime) / 1000;
+                    const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                    const s = Math.floor(elapsed % 60).toString().padStart(2, '0');
+                    timeElapsed.textContent = `${h}:${m}:${s}`;
+                } else if (!simState.launched) {
+                    timeElapsed.textContent = "00:00:00";
+                }
+                
+                updateStagingUI();
+            }
+            
+            function updateStagingUI() {
+                stagingContainer.innerHTML = '';
+                simState.rocket.stages.slice().reverse().forEach((stage, index) => {
+                    const reversedIndex = simState.rocket.stages.length - 1 - index;
+                    const fuelPercentage = (stage.fuelMass / stage.initialFuelMass) * 100;
+                    
+                    const container = document.createElement('div');
+                    container.className = `p-2 rounded mb-2 border-2 ${reversedIndex === simState.rocket.currentStage && !stage.separated ? 'border-cyan-400' : 'border-gray-600'} ${stage.separated ? 'opacity-40' : ''}`;
+                    
+                    let statusHtml;
+                    if (stage.separated) {
+                         statusHtml = `<span class="text-gray-500 font-bold">JETTISONED</span>`;
+                    } else if (stage.active && stage.fuelMass > 0) {
+                         statusHtml = `<span class="text-green-400 font-bold">ACTIVE</span>`;
+                    } else if (stage.active && stage.fuelMass <= 0) {
+                        statusHtml = `<span class="text-red-400 font-bold">DEPLETED</span>`;
+                    } else {
+                         statusHtml = `<span class="text-yellow-500 font-bold">AWAITING</span>`;
+                    }
+
+                    container.innerHTML = `
+                        <div class="flex justify-between items-center text-sm font-bold">
+                            <span>STAGE ${reversedIndex + 1}: ${stage.name}</span>
+                            ${statusHtml}
+                        </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
+                            <div class="bg-green-500 h-2.5 rounded-full" style="width: ${fuelPercentage}%"></div>
+                        </div>
+                    `;
+                    stagingContainer.appendChild(container);
+                });
+            }
+
+    
+            function renderHangarDashboard() {
+                rocketListContainer.innerHTML = ''; 
+                
+                ROCKET_BLUEPRINTS.forEach(blueprint => {
+                    const card = document.createElement('div');
+                    card.className = "bg-gray-900 p-4 rounded-lg border-2 border-gray-700 hover:border-cyan-400 transition-all duration-300 cursor-pointer";
+                    card.innerHTML = `
+                        <h3 class="text-xl font-bold font-orbitron text-green-400 mb-2">${blueprint.name}</h3>
+                        <p class="text-sm text-gray-400 mb-3">${blueprint.description}</p>
+                        <ul class="text-sm space-y-1">
+                            <li class="flex justify-between"><span>Payload Mass:</span> <span class="font-orbitron text-white">${blueprint.payloadMass} kg</span></li>
+                            <li class="flex justify-between"><span>Total Stages:</span> <span class="font-orbitron text-white">${blueprint.stages.length}</span></li>
+                        </ul>
+                        <button data-rocket-id="${blueprint.id}" class="select-rocket-btn mt-4 w-full p-2 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-all">SELECT VEHICLE</button>
+                    `;
+                    rocketListContainer.appendChild(card);
+                });
+                
+                
+                document.querySelectorAll('.select-rocket-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const rocketId = e.target.getAttribute('data-rocket-id');
+                        selectRocket(rocketId);
+                    });
+                });
+            }
+
+            function selectRocket(rocketId) {
+                selectedRocketBlueprint = ROCKET_BLUEPRINTS.find(r => r.id === rocketId);
+                if (selectedRocketBlueprint) {
+                    hangarDashboard.classList.add('hidden'); 
+                    init(); 
+                } else {
+                    
+                    logMessage('Error: Rocket blueprint not found. 🚨'); 
+                }
+            }
+
+
+            function setStatus(text, color, pulse) {
+                statusText.textContent = text;
+                statusText.className = `font-bold font-orbitron text-${color}-500`;
+                statusLight.className = `w-4 h-4 rounded-full bg-${color}-500 inline-block mr-2 ${pulse ? 'animate-pulse' : ''}`;
+            }
+
+            function logMessage(text) {
+                const timestamp = new Date().toLocaleTimeString();
+                simState.messages.push(`[${timestamp}] ${text}`);
+                if (simState.messages.length > 5) {
+                    simState.messages.shift();
+                }
+                messageDisplay.textContent = simState.messages[simState.messages.length - 1];
+                messageDisplay.classList.remove('animate-ping');
+                void messageDisplay.offsetWidth;
+                messageDisplay.classList.add('animate-ping');
+                setTimeout(() => messageDisplay.classList.remove('animate-ping'), 500);
+            }
+
+            function handleIgnition() {
+                if (simState.launched) return;
+                simState.running = true;
+                simState.launched = true;
+                simState.startTime = performance.now();
+                simState.lastDataLogTime = 0;
+                simState.rocket.stages[0].active = true;
+                simState.rocket.currentStage = 0;
+                setStatus('LIFTOFF', 'green', true);
+                logMessage('Main engine ignition and liftoff!');
+                ignitionButton.disabled = true;
+                stageButton.disabled = false; // Enable staging button after launch
+                engineShutdownButton.disabled = false;
+                abortButton.disabled = false;
+            }
+
+            // isAutomatic flag determines if this was called by fuel depletion
+            function handleStageSeparation(isAutomatic = false) {
+                const currentStageIndex = simState.rocket.currentStage;
+                const currentStage = simState.rocket.stages[currentStageIndex];
+                
+                if (currentStageIndex + 1 >= simState.rocket.stages.length) {
+                    logMessage('No more stages to separate.');
+                    stageButton.disabled = true;
+                    return;
+                }
+
+                if (!isAutomatic && currentStage.fuelMass > 0) {
+                    // Manual override separation
+                    logMessage(`WARNING: Stage ${currentStageIndex + 1} manually separated with remaining fuel!`);
+                } else if (!isAutomatic && currentStage.fuelMass <= 0) {
+                    logMessage(`Stage ${currentStageIndex + 1} separation confirmed.`);
+                }
+                
+                // Jettison current active stage
+                currentStage.active = false;
+                currentStage.separated = true;
+                
+                // Activate next stage
+                simState.rocket.currentStage++;
+                simState.rocket.stages[simState.rocket.currentStage].active = true;
+                
+                // Recalculate physical mass and visual mass
+                calculateTotalMass();
+                updateRocketVisualHeight(); 
+                
+                logMessage(`Stage ${currentStageIndex + 1} separated. Stage ${simState.rocket.currentStage + 1} ignition.`);
+            }
+
+            function handleThrottleChange(e) {
+                const value = parseInt(e.target.value, 10);
+                simState.rocket.throttle = value / 100;
+                throttleValue.textContent = value;
+            }
+            
+            function handlePitchChange(e) {
+                const value = parseInt(e.target.value, 10);
+                simState.rocket.pitch = value;
+                pitchValue.textContent = value;
+            }
+            
+            function handleYawChange(e) {
+                const value = parseInt(e.target.value, 10);
+                simState.rocket.yaw = value;
+                yawValue.textContent = value;
+            }
+            
+            function handleTimeScaleChange(e) {
+                const value = parseFloat(e.target.value);
+                simState.simulation.timeScale = value;
+                timeScaleValue.textContent = value.toFixed(1);
+            }
+            
+            function handleZoomChange(e) {
+                const value = parseFloat(e.target.value);
+                simState.camera.zoom = value;
+                zoomValue.textContent = value.toFixed(1);
+            }
+            
+            function handleEngineShutdown() {
+                if (!simState.launched) return;
+                simState.rocket.engineShutdown = !simState.rocket.engineShutdown;
+                const status = simState.rocket.engineShutdown ? 'SHUTDOWN' : 'RESTART';
+                engineShutdownButton.textContent = simState.rocket.engineShutdown ? 'ENGINE ON' : 'ENGINE CUT';
+                logMessage(`Engine ${status}`);
+            }
+            
+            function handleAbort() {
+                if (!simState.launched || simState.simulation.aborted) return;
+                simState.simulation.aborted = true;
+                simState.rocket.engineShutdown = true;
+                simState.running = false;
+                setStatus('ABORTED', 'red', false);
+                logMessage('Mission aborted by user command!');
+                abortButton.disabled = true;
+            }
+            
+            function handlePause() {
+                simState.simulation.paused = !simState.simulation.paused;
+                pauseButton.textContent = simState.simulation.paused ? 'RESUME' : 'PAUSE';
+                const status = simState.simulation.paused ? 'PAUSED' : 'RUNNING';
+                logMessage(`Simulation ${status}`);
+            }
+            
+            function handleReset() {
+                simState.simulation.paused = false;
+                simState.simulation.aborted = false;
+                pauseButton.textContent = 'PAUSE';
+                setStatus('STANDBY', 'red', true);
+                logMessage('Simulation reset.');
+                init();
+            }
+
+            function resizeCanvas() {
+                const dpr = window.devicePixelRatio || 1;
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+                ctx.scale(dpr, dpr);
+            }
+
+            ignitionButton.addEventListener('click', handleIgnition);
+            stageButton.addEventListener('click', () => handleStageSeparation(false)); // Manual staging
+            resetButton.addEventListener('click', handleReset);
+            throttleSlider.addEventListener('input', handleThrottleChange);
+            
+            // New control event listeners
+            pitchSlider.addEventListener('input', handlePitchChange);
+            yawSlider.addEventListener('input', handleYawChange);
+            timeScaleSlider.addEventListener('input', handleTimeScaleChange);
+            zoomSlider.addEventListener('input', handleZoomChange);
+            engineShutdownButton.addEventListener('click', handleEngineShutdown);
+            abortButton.addEventListener('click', handleAbort);
+            pauseButton.addEventListener('click', handlePause);
+            
+            window.addEventListener('resize', resizeCanvas);
+            
+            init();
+        });
+    </script>
+</body>
+</html>

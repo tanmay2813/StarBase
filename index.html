@@ -77,6 +77,20 @@
             <h2 class="text-3xl font-bold font-orbitron text-cyan-400 mb-6 text-center">ROCKET HANGAR SELECTION 🧑‍🚀</h2>
             <div id="rocket-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 </div>
+                <div class="bg-gray-900 p-4 rounded-lg border-2 border-gray-700 hover:border-purple-400 transition-all duration-300 cursor-pointer flex flex-col items-center justify-center text-center" id="create-custom-rocket-card">
+                    <svg class="w-10 h-10 text-purple-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <h3 class="text-xl font-bold font-orbitron text-purple-400 mb-2">CUSTOM BUILD with Cosmos AI</h3>
+                    <p class="text-sm text-gray-400">Design your perfect orbital vehicle from scratch.</p>
+                    <button id="open-custom-builder-btn" class="mt-4 w-full p-2 bg-purple-600 hover:bg-purple-500 rounded font-bold transition-all">START BUILDER</button>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-2xl font-bold font-orbitron text-cyan-400 mb-3">MISSION TARGET 🎯</h3>
+                    <p class="text-sm text-gray-400 mb-2">Choose your destination. Distances are approximate and used for simulation only.</p>
+                    <div id="mission-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+            </div>
+
              <p class="text-center text-gray-500 mt-4">Select a vehicle to begin your mission!</p>
         </div>
     </div>
@@ -85,9 +99,22 @@
             const hangarDashboard = document.getElementById('hangar-dashboard');
             const rocketListContainer = document.getElementById('rocket-list');
 
+           const missionListContainer = document.getElementById('mission-list');
            </script>
     </div>
 
+    <!-- Mission Report Modal (New Feature) -->
+    <div id="report-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-3xl border border-cyan-500/50 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold font-orbitron text-cyan-400 mb-4 border-b border-gray-700 pb-2">MISSION REPORT 📝</h2>
+            <div id="report-content" class="text-gray-300 space-y-3">
+                <!-- Content will be injected here -->
+                <p class="text-center text-gray-400">Loading report...</p>
+            </div>
+            <button id="close-report-modal" class="mt-6 w-full p-3 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all duration-200">CLOSE</button>
+        </div>
+    </div>
+    
     <!-- Main Content -->
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
 
@@ -98,6 +125,7 @@
                 <span class="text-sm text-cyan-400">ALTITUDE</span>
                 <div id="altitude-value" class="telemetry-value text-2xl">0 m</div>
             </div>
+            <div id="landing-overlay" class="absolute top-16 left-4 bg-black/70 text-white p-3 rounded-lg border border-yellow-500/60 hidden w-64 text-sm"></div>
              <div id="message-display" class="absolute bottom-4 left-4 text-yellow-400 font-bold p-2 rounded-lg bg-black/50 backdrop-blur-sm"></div>
         </main>
 
@@ -115,6 +143,26 @@
                     </div>
                      <div class="text-sm mt-2">
                         <span>ELAPSED: </span><span id="time-elapsed" class="telemetry-value">00:00:00</span>
+                    </div>
+                </div>
+
+                <!-- Mission Panel -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">MISSION</h2>
+                    <div class="text-sm space-y-1">
+                        <div class="flex justify-between"><span>Target:</span> <span id="mission-name" class="telemetry-value">Test Flight</span></div>
+                        <div class="flex justify-between"><span>Distance:</span> <span id="mission-distance" class="telemetry-value">N/A</span></div>
+                        <div class="flex justify-between"><span>Covered:</span> <span id="mission-covered" class="telemetry-value">0 km</span></div>
+                        <div class="flex justify-between"><span>Remaining:</span> <span id="mission-remaining" class="telemetry-value">N/A</span></div>
+                        <div class="flex justify-between"><span>Remaining Burn:</span> <span id="mission-burn-time" class="telemetry-value">0s</span></div>
+                        <div class="flex justify-between"><span>Fuel Spent:</span> <span id="mission-fuel-spent" class="telemetry-value">0 kg</span></div>
+                        <div class="flex justify-between"><span>Status:</span> <span id="mission-status" class="font-orbitron text-yellow-400">N/A</span></div>
+                        <div class="mt-2">
+                            <div class="relative w-full h-2 bg-gray-700 rounded">
+                                <div id="mission-progress" class="absolute left-0 top-0 h-2 bg-cyan-400 rounded" style="width:0%"></div>
+                                <div id="mission-markers" class="absolute inset-0"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -152,6 +200,15 @@
                             <canvas id="velocityChart"></canvas>
                         </div>
                     </div>
+                </div>
+
+                <!-- AI Mission Analysis (New Feature) -->
+                <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">AI MISSION ANALYSIS</h2>
+                     <button id="generate-report-button" class="w-full p-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
+                        GENERATE REPORT ✨
+                     </button>
+                     <p id="report-note" class="text-xs text-center text-gray-400 mt-2 hidden">The report can only be generated after the flight simulation has ended.</p>
                 </div>
 
                 <!-- Controls -->
@@ -192,6 +249,22 @@
                     </div>
                 </div>
                 
+                <!-- Landing Control -->
+                <div class="mb-4 bg-gray-900/50 p-3 rounded-lg border border-gray-700">
+                    <label class="block mb-2 text-sm font-bold">LANDING</label>
+                    <div class="space-y-2">
+                        <label class="inline-flex items-center space-x-2">
+                            <input type="checkbox" id="auto-land-checkbox" class="h-4 w-4">
+                            <span class="text-sm">Auto land on arrival</span>
+                        </label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button id="land-auto-btn" class="p-2 bg-green-700 hover:bg-green-600 rounded-lg font-bold text-xs disabled:bg-gray-600 disabled:cursor-not-allowed">BEGIN AUTO DESCENT</button>
+                            <button id="land-manual-btn" class="p-2 bg-blue-700 hover:bg-blue-600 rounded-lg font-bold text-xs disabled:bg-gray-600 disabled:cursor-not-allowed">MANUAL DESCENT</button>
+                            <button id="land-hold-btn" class="p-2 bg-yellow-700 hover:bg-yellow-600 rounded-lg font-bold text-xs disabled:bg-gray-600 disabled:cursor-not-allowed">HOLD</button>
+                        </div>
+                    </div>
+                </div>
+                
                  <!-- Simulation Control -->
                 <div class="bg-gray-900/50 p-3 rounded-lg border border-gray-700">
                      <h2 class="text-lg font-bold text-cyan-400 mb-2 border-b border-gray-600 pb-1">SIMULATION</h2>
@@ -212,6 +285,46 @@
                         <button id="pause-button" class="w-full p-2 bg-yellow-600 hover:bg-yellow-500 rounded-lg font-bold transition-all duration-200">PAUSE</button>
                         <button id="reset-button" class="w-full p-2 bg-red-700 hover:bg-red-600 rounded-lg font-bold transition-all duration-200">RESET</button>
                      </div>
+
+                     <div id="custom-builder-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl border border-purple-500/50 max-h-[95vh] overflow-y-auto">
+            <h2 class="text-3xl font-bold font-orbitron text-purple-400 mb-6 text-center border-b border-gray-700 pb-3">CUSTOM ROCKET DESIGN 🛠️</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-xl font-bold text-cyan-400 mb-3">VEHICLE SPECS</h3>
+                        <label class="block mb-2">
+                            <span class="text-sm text-gray-400">Rocket Name</span>
+                            <input type="text" id="custom-rocket-name" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white font-orbitron" value="My Custom Rocket" required>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-gray-400">Payload Mass (kg)</span>
+                            <input type="number" id="custom-payload-mass" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white font-orbitron" value="1000" min="10" required>
+                        </label>
+                    </div>
+
+                    <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-xl font-bold text-cyan-400 mb-3">AI THRUST ANALYSIS</h3>
+                        <button id="analyze-rocket-btn" class="w-full p-3 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-all duration-200">ANALYZE THRUST 🧠</button>
+                        <p id="ai-suggestion-text" class="text-sm text-gray-400 mt-3"></p>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <h3 class="text-xl font-bold text-cyan-400 mb-3">STAGE CONFIGURATION</h3>
+                    <div id="custom-stages-container" class="space-y-4 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                        </div>
+                    <button id="add-stage-btn" class="mt-4 w-full p-2 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-all">ADD NEW STAGE</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mt-8">
+                <button id="save-and-launch-btn" class="p-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">SAVE & LAUNCH</button>
+                <button id="close-custom-builder-btn" class="p-3 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all duration-200">CANCEL</button>
+            </div>
+        </div>
+    </div>
                 </div>
 
             </div>
@@ -224,16 +337,18 @@
         document.addEventListener('DOMContentLoaded', () => {
         
 const ROCKET_BLUEPRINTS = [
+
+
     {
         id: 'basic-test-rocket',
         name: 'Basic Test Rocket 🧪',
         description: 'A simple two-stage liquid-fueled rocket for suborbital tests.',
-        payloadMass: 500, 
+        payloadMass: 500,
         stages: [
             // Stage 1: Booster
-            { name: 'Booster', dryMass: 1500, initialFuelMass: 10000, maxThrust: 800000, visualHeight: 50 },
+            { name: 'Booster', dryMass: 1500, initialFuelMass: 10000, fuelCapacity: 10000, maxThrust: 800000, visualHeight: 50 },
             // Stage 2: Sustainer
-            { name: 'Sustainer', dryMass: 800, initialFuelMass: 8000, maxThrust: 300000, visualHeight: 30 },
+            { name: 'Sustainer', dryMass: 800, initialFuelMass: 8000, fuelCapacity: 8000, maxThrust: 300000, visualHeight: 30 },
         ],
     },
     {
@@ -243,19 +358,32 @@ const ROCKET_BLUEPRINTS = [
         payloadMass: 5000, // The heavy payload mass
         stages: [
             // Stage 1: Solid Rocket Boosters (SRB)
-            { name: 'SRB-L', dryMass: 2000, initialFuelMass: 15000, maxThrust: 1000000, visualHeight: 40 },
+            { name: 'SRB-L', dryMass: 2000, initialFuelMass: 15000, fuelCapacity: 15000, maxThrust: 1000000, visualHeight: 40 },
             // Stage 2: Core Stage
-            { name: 'Core Stage', dryMass: 5000, initialFuelMass: 40000, maxThrust: 2000000, visualHeight: 80 },
+            { name: 'Core Stage', dryMass: 5000, initialFuelMass: 40000, fuelCapacity: 40000, maxThrust: 2000000, visualHeight: 80 },
             // Stage 3: Upper Stage
-            { name: 'Upper Stage', dryMass: 1000, initialFuelMass: 12000, maxThrust: 500000, visualHeight: 35 },
+            { name: 'Upper Stage', dryMass: 1000, initialFuelMass: 12000, fuelCapacity: 12000, maxThrust: 500000, visualHeight: 35 },
         ],
+        
     },
-];
+    
+]; 
 
+const MISSIONS = [
+    { id: 'test', name: 'Test Flight', distanceMeters: null },
+    { id: 'mercury', name: 'Mercury', distanceMeters: 9.1e10 },
+    { id: 'venus', name: 'Venus', distanceMeters: 4.1e10 },
+    { id: 'mars', name: 'Mars', distanceMeters: 2.25e11 },
+    { id: 'jupiter', name: 'Jupiter', distanceMeters: 6.28e11 },
+    { id: 'saturn', name: 'Saturn', distanceMeters: 1.2e12 },
+    { id: 'uranus', name: 'Uranus', distanceMeters: 2.6e12 },
+    { id: 'neptune', name: 'Neptune', distanceMeters: 4.3e12 },
+]; 
 
 let selectedRocketBlueprint = null; 
+let selectedMissionTarget = null;
 
-
+let customRocketStages = [];
            
 
             // --- DOM Elements ---
@@ -272,6 +400,16 @@ let selectedRocketBlueprint = null;
             const twr = document.getElementById('twr');
             const totalMass = document.getElementById('total-mass');
             const apogee = document.getElementById('apogee');
+            // Mission UI elements
+            const missionNameEl = document.getElementById('mission-name');
+            const missionDistanceEl = document.getElementById('mission-distance');
+            const missionCoveredEl = document.getElementById('mission-covered');
+            const missionRemainingEl = document.getElementById('mission-remaining');
+            const missionBurnTimeEl = document.getElementById('mission-burn-time');
+            const missionFuelSpentEl = document.getElementById('mission-fuel-spent');
+            const missionStatusEl = document.getElementById('mission-status');
+            const missionProgressEl = document.getElementById('mission-progress');
+            const missionMarkersEl = document.getElementById('mission-markers');
             const timeElapsed = document.getElementById('time-elapsed');
             const statusLight = document.getElementById('status-light');
             const statusText = document.getElementById('status-text');
@@ -296,11 +434,31 @@ let selectedRocketBlueprint = null;
             const zoomValue = document.getElementById('zoom-value');
             const pauseButton = document.getElementById('pause-button');
 
+            // Landing controls
+            const autoLandCheckbox = document.getElementById('auto-land-checkbox');
+            const landAutoBtn = document.getElementById('land-auto-btn');
+            const landManualBtn = document.getElementById('land-manual-btn');
+            const landHoldBtn = document.getElementById('land-hold-btn');
+
+            // New AI elements
+            const reportModal = document.getElementById('report-modal');
+            const closeReportModal = document.getElementById('close-report-modal');
+            const reportContent = document.getElementById('report-content');
+            const generateReportButton = document.getElementById('generate-report-button');
+            const reportNote = document.getElementById('report-note');
+
             // --- Simulation Constants ---
             const G = 9.81; // Gravitational acceleration (m/s^2)
             // INCREASED: from 0.1 to 0.5 for better visual feedback.
             const PIXELS_PER_METER = 0.5; // Visual scaling 
             const NOSE_HEIGHT = 20; // Fixed height for the nose cone in pixels
+            // Scale down interplanetary distances to be reachable in simulation while keeping ratios
+            const MISSION_DISTANCE_DIVISOR = 1e7; // e.g., 91,000,000 km becomes ~9.1 km equivalent
+            const SPACE_ALTITUDE = 100000; // meters, sky turns black above this
+
+            // --- Gemini API Configuration ---
+            const apiKey = "AIzaSyCeBvGbwkQhIepO56if0Rpu9NgUWWMz10E"
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
             // --- Simulation State ---
             let simState;
@@ -331,9 +489,9 @@ let selectedRocketBlueprint = null;
                         
                         stages: [
                             // Added visualHeight for dynamic drawing
-                            { name: 'SRB', dryMass: 1500, fuelMass: 10000, maxThrust: 800000, active: false, separated: false, visualHeight: 50 },
-                            { name: 'S-I', dryMass: 2000, fuelMass: 25000, maxThrust: 1200000, active: false, separated: false, visualHeight: 40 },
-                            { name: 'S-II', dryMass: 800, fuelMass: 8000, maxThrust: 300000, active: false, separated: false, visualHeight: 30 },
+                            { name: 'SRB', dryMass: 1500, fuelMass: 10000, fuelCapacity: 10000, maxThrust: 800000, active: false, separated: false, visualHeight: 50 },
+                            { name: 'S-I', dryMass: 2000, fuelMass: 25000, fuelCapacity: 25000, maxThrust: 1200000, active: false, separated: false, visualHeight: 40 },
+                            { name: 'S-II', dryMass: 800, fuelMass: 8000, fuelCapacity: 8000, maxThrust: 300000, active: false, separated: false, visualHeight: 30 },
                         ],
                         
                         width: 30, // fixed width for visualization (increased for better visibility)
@@ -365,6 +523,21 @@ let selectedRocketBlueprint = null;
                         positions: [], // Store x,y positions for flight path
                     },
 
+                    mission: {
+                        name: 'Test Flight',
+                        distanceMeters: null,
+                        effectiveDistanceMeters: null,
+                        distanceCoveredMeters: 0,
+                        lostConnection: false,
+                        arrived: false,
+                        landing: {
+                            autoEnabled: false,
+                            state: 'none', // none|approach|countdown|auto|manual|landed
+                            countdownEndTime: 0,
+                        },
+                        uncontrolled: false, // ballistic fall without control (atmospheric fuel-out)
+                    },
+
                     crash: {
                         crashed: false,
                         explosionTime: 0,
@@ -372,31 +545,231 @@ let selectedRocketBlueprint = null;
                     },
                 };
             }
+            // ... after getDefaultSimState()
 
-            // --- Initialization ---
-            // --- Initialization ---
-            function init() {
-                // 1. Check if a rocket has been selected. If not, show the hangar!
-                if (!selectedRocketBlueprint) {
-                    renderHangarDashboard();
-                    hangarDashboard.classList.remove('hidden');
-                    return; // Stop initialization until a rocket is selected
+            // --- Custom Rocket Builder Functions ---
+
+            function getCustomRocketData() {
+                const stages = [];
+                // Collect data from all dynamic stage inputs
+                document.querySelectorAll('.custom-stage-group').forEach((group, index) => {
+                    stages.push({
+                        name: group.querySelector('.stage-name-input').value || `Stage ${index + 1}`,
+                        dryMass: parseFloat(group.querySelector('.dry-mass-input').value) || 0,
+                        initialFuelMass: parseFloat(group.querySelector('.fuel-mass-input').value) || 0,
+                        fuelCapacity: parseFloat(group.querySelector('.fuel-capacity-input')?.value) || parseFloat(group.querySelector('.fuel-mass-input').value) || 0,
+                        maxThrust: parseFloat(group.querySelector('.max-thrust-input').value) || 0,
+                        visualHeight: parseFloat(group.querySelector('.visual-height-input').value) || 30, // Default height
+                    });
+                });
+
+                return {
+                    id: 'custom-rocket',
+                    name: customRocketNameInput.value || 'Custom Vehicle',
+                    description: 'User-defined custom vehicle.',
+                    payloadMass: parseFloat(customPayloadMassInput.value) || 0,
+                    stages: stages.filter(s => s.dryMass + s.initialFuelMass + s.maxThrust > 0).reverse(), // Stages are added top-down, but the simulation needs them bottom-up (Stage 1 is index 0). Reverse them on collection.
+                };
+            }
+
+            /**
+             * Analyzes the custom rocket's design and suggests a minimum throttle for liftoff.
+             */
+            async function analyzeRocketForTWR() {
+                const rocketData = getCustomRocketData();
+
+                if (rocketData.stages.length === 0) {
+                    aiSuggestionText.innerHTML = '<span class="text-red-400">Error: Add at least one stage to analyze.</span>';
+                    return;
                 }
                 
+                analyzeRocketBtn.disabled = true;
+                analyzeRocketBtn.textContent = "ANALYZING...";
+                aiSuggestionText.innerHTML = '<svg class="animate-spin h-4 w-4 mr-1 inline-block text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Calculating minimum liftoff throttle...';
+
+                // Calculate the initial total mass for TWR calculation
+                const initialTotalMass = rocketData.payloadMass + rocketData.stages.reduce((sum, s) => sum + s.dryMass + s.initialFuelMass, 0);
+                const firstStageMaxThrust = rocketData.stages[0].maxThrust;
+                
+                const systemPrompt = "You are an aerospace TWR (Thrust-to-Weight Ratio) calculation expert. Your goal is to analyze the provided rocket data and determine the minimum safe throttle percentage required for liftoff (TWR > 1.1) using *only* the first stage. You must output the result as a JSON object, focusing on a clear recommendation.";
+                
+                const userQuery = `Analyze the following initial liftoff configuration. Initial Total Mass: ${initialTotalMass.toFixed(2)} kg. First Stage Max Thrust: ${firstStageMaxThrust.toFixed(0)} N. Gravitational acceleration (G) is 9.81 m/s^2. Provide the minimum safe throttle (TWR > 1.1) as a percentage (0-100), and a brief justification.`;
+
+                const responseSchema = {
+                    type: "OBJECT",
+                    properties: {
+                        requiredThrottlePercentage: { type: "NUMBER", description: "The minimum safe throttle as a percentage (0-100) needed for TWR > 1.1, rounded to the nearest integer." },
+                        justification: { type: "STRING", description: "A concise sentence explaining the TWR calculation and recommendation." },
+                    },
+                    required: ["requiredThrottlePercentage", "justification"],
+                };
+
+                try {
+                    const payload = {
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: responseSchema
+                        }
+                    };
+
+                    const response = await exponentialBackoffFetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (!jsonText) {
+                        throw new Error("Gemini API returned no text content.");
+                    }
+
+                    const report = JSON.parse(jsonText);
+                    
+                    const minThrottle = Math.min(100, Math.max(0, report.requiredThrottlePercentage));
+                    
+                    aiSuggestionText.innerHTML = `
+                        <p class="text-white font-bold mt-2">Recommended Minimum Throttle: <span class="text-green-400">${minThrottle}%</span></p>
+                        <p class="text-xs text-gray-500">${report.justification}</p>
+                    `;
+
+                } catch (error) {
+                    aiSuggestionText.innerHTML = `<p class="text-red-400 text-sm">AI Analysis Failed: ${error.message}. Please check your API Key and rocket values.</p>`;
+                    console.error("Gemini API Error for TWR:", error);
+                } finally {
+                    analyzeRocketBtn.disabled = false;
+                    analyzeRocketBtn.textContent = "ANALYZE THRUST 🧠";
+                }
+            }
+            function renderCustomStages() {
+                customStagesContainer.innerHTML = '';
+                
+                // Stages are rendered from top-down for intuitive building (Upper Stage, Core Stage, Booster)
+                customRocketStages.forEach((stage, index) => {
+                    const stageIndex = customRocketStages.length - index; // 3, 2, 1
+                    
+                    const stageDiv = document.createElement('div');
+                    stageDiv.className = "custom-stage-group p-4 bg-gray-700/50 rounded-lg border border-purple-600/50";
+                    stageDiv.dataset.index = index;
+                    
+                    stageDiv.innerHTML = `
+                        <div class="flex justify-between items-center mb-3 border-b border-gray-600 pb-2">
+                            <h4 class="text-lg font-bold text-purple-400">STAGE ${stageIndex} <span class="text-sm text-gray-400">(${stage.name})</span></h4>
+                            <button class="remove-stage-btn p-1 bg-red-600 hover:bg-red-500 rounded text-xs font-bold transition-all">REMOVE</button>
+                        </div>
+                        
+                        <label class="block mb-2">
+                            <span class="text-sm text-gray-400">Stage Name</span>
+                            <input type="text" class="stage-name-input w-full mt-1 p-2 bg-gray-800 border border-gray-600 rounded text-white" value="${stage.name}" placeholder="Upper Stage" required>
+                        </label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="block mb-2">
+                                <span class="text-sm text-gray-400">Dry Mass (kg)</span>
+                                <input type="number" class="dry-mass-input w-full mt-1 p-2 bg-gray-800 border border-gray-600 rounded text-white" value="${stage.dryMass}" min="10" required>
+                            </label>
+                            <label class="block mb-2">
+                                <span class="text-sm text-gray-400">Fuel Mass (kg)</span>
+                                <input type="number" class="fuel-mass-input w-full mt-1 p-2 bg-gray-800 border border-gray-600 rounded text-white" value="${stage.initialFuelMass}" min="0" required>
+                            </label>
+                            <label class="block mb-2">
+                                <span class="text-sm text-gray-400">Fuel Capacity (kg)</span>
+                                <input type="number" class="fuel-capacity-input w-full mt-1 p-2 bg-gray-800 border border-gray-600 rounded text-white" value="${stage.fuelCapacity ?? stage.initialFuelMass ?? stage.fuelMass ?? 0}" min="0" required>
+                            </label>
+                            <label class="block mb-2">
+                                <span class="text-sm text-gray-400">Max Thrust (N)</span>
+                                <input type="number" class="max-thrust-input w-full mt-1 p-2 bg-gray-800 border border-gray-600 rounded text-white" value="${stage.maxThrust}" min="1000" required>
+                            </label>
+                            <label class="block mb-2">
+                                <span class="text-sm text-gray-400">Visual Height (px)</span>
+                                <input type="number" class="visual-height-input w-full mt-1 p-2 bg-gray-800 border border-gray-600 rounded text-white" value="${stage.visualHeight}" min="10" max="100" required>
+                            </label>
+                        </div>
+                    `;
+                    customStagesContainer.appendChild(stageDiv);
+                });
+                
+                // Add event listeners for dynamic elements
+                document.querySelectorAll('.remove-stage-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.closest('.custom-stage-group').dataset.index;
+                        customRocketStages.splice(index, 1);
+                        renderCustomStages();
+                    });
+                });
+                
+                document.querySelectorAll('.custom-stage-group input').forEach(input => {
+                    input.addEventListener('input', updateCustomStagesData);
+                });
+            }
+
+            function updateCustomStagesData() {
+                // Read all data back into the customRocketStages array
+                customRocketStages = [];
+                document.querySelectorAll('.custom-stage-group').forEach((group, index) => {
+                    customRocketStages.push({
+                        name: group.querySelector('.stage-name-input').value || `Stage ${customRocketStages.length - index}`,
+                        dryMass: parseFloat(group.querySelector('.dry-mass-input').value) || 0,
+                        initialFuelMass: parseFloat(group.querySelector('.fuel-mass-input').value) || 0,
+                        fuelCapacity: parseFloat(group.querySelector('.fuel-capacity-input')?.value) || parseFloat(group.querySelector('.fuel-mass-input').value) || 0,
+                        maxThrust: parseFloat(group.querySelector('.max-thrust-input').value) || 0,
+                        visualHeight: parseFloat(group.querySelector('.visual-height-input').value) || 30,
+                    });
+                });
+            }
+
+            function addDefaultStage() {
+                const stageIndex = customRocketStages.length + 1;
+                // Add new stage to the *start* of the array so it appears at the *top* of the list (Upper Stage first)
+                customRocketStages.unshift({
+                    name: `New Stage ${stageIndex}`,
+                    dryMass: 500,
+                    initialFuelMass: 3000,
+                    fuelCapacity: 3000,
+                    maxThrust: 200000,
+                    visualHeight: 30,
+                });
+                renderCustomStages();
+            }
+            
+            // --- Initialization ---
+            function init() {
                 simState = getDefaultSimState();
-                
-                // 2. Load the stages and mass from the selected blueprint
-                simState.rocket.stages = selectedRocketBlueprint.stages.map(s => ({
-                    ...s, // Copy all properties from the blueprint
-                    fuelMass: s.initialFuelMass, // Set current fuel to initial
-                    active: false,
-                    separated: false,
-                }));
-                
+
+                // Initialize mission from selection
+                if (!selectedMissionTarget) selectedMissionTarget = MISSIONS[0];
+                simState.mission.name = selectedMissionTarget.name;
+                simState.mission.distanceMeters = selectedMissionTarget.distanceMeters;
+                simState.mission.effectiveDistanceMeters = selectedMissionTarget.distanceMeters == null ? null : (selectedMissionTarget.distanceMeters / MISSION_DISTANCE_DIVISOR);
+                simState.mission.distanceCoveredMeters = 0;
+                simState.mission.lostConnection = false;
+                simState.mission.arrived = false;
+                simState.mission.uncontrolled = false;
+                simState.mission.landing = { autoEnabled: !!autoLandCheckbox?.checked, state: 'none', countdownEndTime: 0 };
+
+                // Load the stages and mass from the selected blueprint
+                simState.rocket.stages = selectedRocketBlueprint.stages.map(s => {
+                    const capacity = (typeof s.fuelCapacity === 'number' ? s.fuelCapacity : s.initialFuelMass);
+                    const initial = Math.min(s.initialFuelMass || 0, capacity || 0);
+                    return {
+                        ...s, // Copy all properties from the blueprint
+                        fuelCapacity: capacity,
+                        fuelMass: initial, // Current fuel cannot exceed capacity
+                        initialFuelMass: initial, // Preserve initial load as the starting fuel
+                        active: false,
+                        separated: false,
+                    };
+                });
+
                 // Set the non-jettisonable payload mass
                 simState.rocket.baseMass = selectedRocketBlueprint.payloadMass;
 
-                // 3. Continue the rest of the original initialization
+                // Compute total fuel capacity across all stages (maximum fuel to burn)
+                simState.rocket.totalFuelCapacity = simState.rocket.stages.reduce((sum, s) => sum + (s.fuelCapacity ?? s.initialFuelMass ?? 0), 0);
+
+                // Continue the rest of the original initialization
                 simState.rocket.stages.forEach(s => { s.initialFuelMass = s.fuelMass; });
                 calculateTotalMass();
                 updateRocketVisualHeight(); // Calculate initial visual height
@@ -412,6 +785,7 @@ let selectedRocketBlueprint = null;
                 stageButton.disabled = true; // Disable until launched
                 engineShutdownButton.disabled = true;
                 abortButton.disabled = true;
+                generateReportButton.disabled = true; // Disable report until end of flight
 
                 initCharts();
                 resizeCanvas();
@@ -482,6 +856,115 @@ let selectedRocketBlueprint = null;
             }
 
             // --- Physics Engine ---
+            function totalRemainingFuelMass() {
+                return simState.rocket.stages.filter(s => !s.separated).reduce((sum, s) => sum + Math.max(0, s.fuelMass), 0);
+            }
+
+            function remainingBurnTimeSec(throttle) {
+                const thr = Math.max(0, throttle);
+                if (thr <= 0) return 0;
+                let total = 0;
+                simState.rocket.stages.forEach(s => {
+                    if (!s.separated && s.fuelMass > 0 && s.maxThrust > 0) {
+                        const mflow = (s.maxThrust / 5000) * thr;
+                        total += s.fuelMass / mflow;
+                    }
+                });
+                return total; // seconds across all remaining stages sequentially
+            }
+
+            function formatSeconds(sec) {
+                if (!isFinite(sec) || sec <= 0) return '0s';
+                const m = Math.floor(sec / 60);
+                const s = Math.floor(sec % 60);
+                return m > 0 ? `${m}m ${s}s` : `${s}s`;
+            }
+
+            function updateMissionTrack() {
+                if (!missionProgressEl || !missionMarkersEl) return;
+                missionMarkersEl.innerHTML = '';
+                const eff = simState.mission.effectiveDistanceMeters;
+                if (eff == null || eff <= 0) {
+                    missionProgressEl.style.width = '0%';
+                    return;
+                }
+                const frac = Math.max(0, Math.min(1, simState.mission.distanceCoveredMeters / eff));
+                missionProgressEl.style.width = `${(frac*100).toFixed(1)}%`;
+                // Markers for planets up to destination
+                MISSIONS.filter(m => m.distanceMeters != null)
+                    .forEach(m => {
+                        const scaled = m.distanceMeters / MISSION_DISTANCE_DIVISOR;
+                        if (scaled <= eff) {
+                            const pos = Math.max(0, Math.min(1, scaled / eff));
+                            const marker = document.createElement('div');
+                            marker.className = 'absolute top-0 h-2 w-0.5 bg-white/70';
+                            marker.style.left = `calc(${(pos*100).toFixed(2)}% - 1px)`;
+                            marker.title = m.name;
+                            missionMarkersEl.appendChild(marker);
+                        }
+                    });
+            }
+
+                // Simple landing planet visual at ground when arrived
+
+            function processLanding(dt) {
+                if (!simState.mission.arrived) return;
+                const L = simState.mission.landing;
+                // Default: hold position if in approach
+                if (L.state === 'approach' || L.state === 'none') {
+                    simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.ay = 0; simState.rocket.ax = 0;
+                    simState.rocket.engineShutdown = true;
+                    if (L.state === 'none') L.state = 'approach';
+                    if (L.autoEnabled && L.countdownEndTime === 0) {
+                        L.countdownEndTime = performance.now() + 5000;
+                        L.state = 'countdown';
+                        setStatus('APPROACH HOLD', 'yellow', true);
+                        logMessage('Approach complete. Auto-descent in 5s...');
+                    }
+                    return;
+                }
+                if (L.state === 'countdown') {
+                    if (performance.now() >= L.countdownEndTime) {
+                        L.state = 'auto';
+                        logMessage('Auto-descent engaged.');
+                    } else {
+                        return;
+                    }
+                }
+                if (L.state === 'auto' || L.state === 'manual') {
+                    // Descent guidance
+                    const altitude = simState.rocket.y;
+                    let targetVy = -30; // m/s baseline
+                    if (altitude < 300) targetVy = -15;
+                    if (altitude < 100) targetVy = -8;
+                    if (altitude < 20) targetVy = -2;
+                    if (altitude <= 0.5) {
+                        simState.rocket.y = 0; simState.rocket.vy = 0; simState.rocket.ay = 0;
+                        L.state = 'landed';
+                        setStatus('LANDED', 'green', false);
+                        logMessage('Touchdown confirmed.');
+                        simState.running = false;
+                        return;
+                    }
+
+                    // AUTO: smoothly reduce throttle to zero and cut engine; MANUAL: do not override throttle, only provide guidance
+                    if (L.state === 'auto') {
+                        const currentPct = parseInt(throttleSlider.value, 10) || 0;
+                        const nextPct = Math.max(0, currentPct - 20 * dt); // reduce ~20%/s
+                        setThrottlePercent(nextPct);
+                        if (nextPct <= 2) {
+                            if (!simState.rocket.engineShutdown) handleEngineShutdown();
+                        }
+                    }
+
+                    // Apply a gentle controller to achieve targetVy regardless of physics simplifications
+                    const dv = targetVy - simState.rocket.vy;
+                    const accel = Math.max(-20, Math.min(20, dv));
+                    simState.rocket.vy += accel * dt;
+                    simState.rocket.y += simState.rocket.vy * dt;
+                }
+            }
+
             function updatePhysics(dt) {
                 if (!simState.launched) return;
 
@@ -522,11 +1005,13 @@ let selectedRocketBlueprint = null;
                 });
 
                 simState.rocket.totalMass -= fuelConsumed;
-                const gravitationalForce = simState.rocket.totalMass * G;
-                const netForce = currentThrust - gravitationalForce;
                 
-                // Calculate acceleration (with a small buffer to prevent division by zero in edge cases)
-                simState.rocket.ay = simState.rocket.totalMass > 1 ? netForce / simState.rocket.totalMass : -G; 
+                // Calculate acceleration
+                if (currentThrust === 0) {
+                    simState.rocket.ay = -G;
+                } else {
+                    simState.rocket.ay = currentThrust / simState.rocket.totalMass;
+                }
                 simState.rocket.vy += simState.rocket.ay * dt;
                 simState.rocket.y += simState.rocket.vy * dt;
                 simState.rocket.vx += simState.rocket.ax * dt;
@@ -534,6 +1019,51 @@ let selectedRocketBlueprint = null;
                 
                 // Reset horizontal acceleration for next frame
                 simState.rocket.ax = 0;
+
+                // Update mission distance covered (integrate speed)
+                const speed = Math.sqrt(simState.rocket.vx*simState.rocket.vx + simState.rocket.vy*simState.rocket.vy);
+                simState.mission.distanceCoveredMeters += speed * dt;
+
+                // Arrival detection -> enter approach hold, do not instant land
+                const eff = simState.mission.effectiveDistanceMeters;
+                if (!simState.mission.arrived && eff != null && simState.mission.distanceCoveredMeters >= eff) {
+                    simState.mission.arrived = true;
+                    simState.mission.landing.state = 'approach';
+                    simState.rocket.engineShutdown = true;
+                    simState.rocket.vx = 0; simState.rocket.vy = 0;
+                    setStatus('APPROACH HOLD', 'yellow', true);
+                    logMessage(`Approach complete at ${simState.mission.name}. Awaiting landing command.`);
+                }
+
+                // Process landing sequence if arrived
+                if (simState.mission.arrived) {
+                    processLanding(dt);
+                }
+
+                // Detect complete fuel depletion across all stages once (conditional control loss)
+                const remainingFuel = totalRemainingFuelMass();
+                if (remainingFuel <= 0 && !simState.mission.lostConnection && !simState.mission.uncontrolled) {
+                    const altitude = simState.rocket.y;
+                    const inSpace = altitude >= SPACE_ALTITUDE;
+                    simState.rocket.engineShutdown = true;
+                    // Disable interactive controls either way
+                    throttleSlider.disabled = true;
+                    stageButton.disabled = true;
+                    engineShutdownButton.disabled = true;
+                    abortButton.disabled = true;
+                    generateReportButton.disabled = false; // allow report
+                    if (inSpace) {
+                        simState.mission.lostConnection = true;
+                        simState.running = false; // stop sim loop, report available
+                        logMessage('Fuel depleted in space. Connection lost.');
+                        setStatus('LOST LINK', 'red', false);
+                    } else {
+                        simState.mission.uncontrolled = true;
+                        // Keep simulation running to fall ballistically
+                        logMessage('Fuel depleted in atmosphere. Uncontrolled descent initiated.');
+                        setStatus('UNCONTROLLED', 'yellow', true);
+                    }
+                }
 
                 // Ground collision detection
                 if (simState.rocket.y < 0) {
@@ -546,6 +1076,11 @@ let selectedRocketBlueprint = null;
                     simState.crash.crashed = true;
                     simState.crash.explosionTime = performance.now();
                     createExplosionParticles();
+                }
+
+                // New: Check if simulation has ended (crash, abort, or soft landing)
+                if (!simState.running && simState.launched) {
+                    generateReportButton.disabled = false;
                 }
                 
                 // Max Altitude Tracking
@@ -596,7 +1131,7 @@ let selectedRocketBlueprint = null;
                     .reduce((sum, stage) => sum + stage.dryMass + stage.fuelMass, 0);
             }
 
-            // --- Drawing ---
+            // --- Drawing (Unchanged) ---
             function draw() {
                 ctx.save();
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -676,12 +1211,73 @@ let selectedRocketBlueprint = null;
 
 
             function drawBackground() {
-                const skyColor = getSkyColor(simState.rocket.y);
                 const canvasWidth = canvas.offsetWidth || canvas.width;
                 const canvasHeight = canvas.offsetHeight || canvas.height;
+
+                // If we've arrived at a destination, render a themed planetary sky
+                if (simState.mission.arrived && simState.mission.name) {
+                    drawPlanetSky(simState.mission.name, canvasWidth, canvasHeight);
+                    return;
+                }
+
+                const skyColor = getSkyColor(simState.rocket.y);
                 ctx.fillStyle = skyColor;
                 // Fill entire background
                 ctx.fillRect(-canvasWidth/2, -canvasHeight/2, canvasWidth, canvasHeight);
+            }
+
+            function drawPlanetSky(name, canvasWidth, canvasHeight) {
+                const n = (name || '').toLowerCase();
+                let top = '#00111a', mid = '#002233', bot = '#00334d';
+                if (n.includes('mercury')) { top = '#3c3c3c'; mid = '#5a524a'; bot = '#4a4139'; }
+                else if (n.includes('venus')) { top = '#e9d7a9'; mid = '#d9c27a'; bot = '#caa95a'; }
+                else if (n.includes('mars')) { top = '#6b2d1a'; mid = '#8c3f24'; bot = '#a14a2a'; }
+                else if (n.includes('jupiter')) { top = '#b07d52'; mid = '#c89262'; bot = '#a87149'; }
+                else if (n.includes('saturn')) { top = '#d4c192'; mid = '#c8b37e'; bot = '#b8a169'; }
+                else if (n.includes('uranus')) { top = '#9be7e8'; mid = '#7ed4d6'; bot = '#5fc2c5'; }
+                else if (n.includes('neptune')) { top = '#1a3d8f'; mid = '#1f4fb2'; bot = '#2466d1'; }
+
+                // Gradient sky
+                const grad = ctx.createLinearGradient(0, -canvasHeight/2, 0, canvasHeight/2);
+                grad.addColorStop(0, top);
+                grad.addColorStop(0.5, mid);
+                grad.addColorStop(1, bot);
+                ctx.fillStyle = grad;
+                ctx.fillRect(-canvasWidth/2, -canvasHeight/2, canvasWidth, canvasHeight);
+
+                // Add subtle bands for gas giants
+                if (n.includes('jupiter') || n.includes('saturn')) {
+                    ctx.save();
+                    ctx.globalAlpha = 0.2;
+                    const bands = n.includes('jupiter') ? 12 : 8;
+                    for (let i = 0; i < bands; i++) {
+                        const y = -canvasHeight/2 + (i + 1) * (canvasHeight / (bands + 1));
+                        ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#000000';
+                        ctx.fillRect(-canvasWidth/2, y, canvasWidth, 6);
+                    }
+                    // Saturn ring hint
+                    if (n.includes('saturn')) {
+                        ctx.globalAlpha = 0.15;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.rotate(-0.15);
+                        ctx.fillRect(-canvasWidth/2, -10, canvasWidth, 20);
+                    }
+                    ctx.restore();
+                }
+
+                // Sparse stars
+                ctx.save();
+                ctx.globalAlpha = 0.6;
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 120; i++) {
+                    const x = (Math.sin(i * 12.9898) * 43758.5453) % canvasWidth;
+                    const y = (Math.cos(i * 78.233) * 12345.6789) % canvasHeight;
+                    const sx = -canvasWidth/2 + (x + canvasWidth) % canvasWidth;
+                    const sy = -canvasHeight/2 + (y + canvasHeight) % canvasHeight;
+                    const size = (Math.abs(Math.sin(i)) % 2) * 1.5;
+                    ctx.fillRect(sx, sy, size, size);
+                }
+                ctx.restore();
             }
             
             function drawEnvironmentalEffects() {
@@ -967,11 +1563,56 @@ let selectedRocketBlueprint = null;
                 ctx.restore();
             }
 
+            function km(valMeters) { return (valMeters/1000); }
+
+            function updateLandingOverlay() {
+                const overlay = document.getElementById('landing-overlay');
+                if (!overlay) return;
+                const arrived = simState.mission.arrived;
+                if (!arrived) { overlay.classList.add('hidden'); return; }
+                overlay.classList.remove('hidden');
+                const L = simState.mission.landing;
+                const tPct = Math.round((simState.rocket.throttle || 0) * 100);
+                const attOk = Math.abs(simState.rocket.pitch) <= 2 && Math.abs(simState.rocket.yaw) <= 2;
+                const alt = simState.rocket.y;
+                const vy = simState.rocket.vy;
+                const safeRate = alt > 100 ? (vy <= -15) : alt > 10 ? (vy <= -5) : (vy <= -1);
+                const check = ok => ok ? '✅' : '⬜';
+                const countdownLeft = L.state === 'countdown' ? Math.max(0, Math.ceil((L.countdownEndTime - performance.now())/1000)) : 0;
+                if (L.state === 'manual' || L.state === 'approach' || L.state === 'countdown') {
+                    overlay.innerHTML = `
+                        <div class="font-orbitron text-yellow-300 mb-1">MANUAL LANDING</div>
+                        ${L.state==='countdown'?`<div class="text-xs text-gray-300 mb-1">Auto in T-${countdownLeft}s (press M to take manual)</div>`:''}
+                        <ul class="space-y-1">
+                            <li>${check(tPct <= 5)} Reduce throttle below 5% (Arrow Down)</li>
+                            <li>${check(simState.rocket.engineShutdown)} Cut engine (Space)</li>
+                            <li>${check(attOk)} Align attitude: pitch/yaw ~0° (W/S, A/D)</li>
+                            <li>${check(safeRate)} Safe descent rate (vy ${vy.toFixed(1)} m/s)</li>
+                            <li>${check(L.state==='landed')} Touchdown</li>
+                        </ul>
+                        <div class="text-xs text-gray-400 mt-2">Shortcuts: G=Auto, M=Manual, H=Hold</div>
+                    `;
+                } else {
+                    // Auto
+                    overlay.innerHTML = `
+                        <div class="font-orbitron text-green-300 mb-1">AUTO LANDING</div>
+                        <ul class="space-y-1">
+                            <li>${check(tPct <= 5)} Reducing throttle</li>
+                            <li>${check(simState.rocket.engineShutdown)} Engine cutoff</li>
+                            <li>${check(vy <= -0.5)} Controlled descent</li>
+                            <li>${check(L.state==='landed')} Touchdown</li>
+                        </ul>
+                        <div class="text-xs text-gray-400 mt-2">Press H to hold, M for manual</div>
+                    `;
+                }
+            }
+
             function updateUI() {
                 const fmt = (val, unit, dec = 0) => val.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g, ",") + unit;
-                altitudeValue.textContent = fmt(simState.rocket.y, ' m');
-                velocity.textContent = fmt(simState.rocket.vy, ' m/s');
-                maxAltitude.textContent = fmt(simState.stats.maxAltitude, ' m');
+                const lost = simState.mission.lostConnection;
+                altitudeValue.textContent = lost ? 'LOST LINK' : fmt(simState.rocket.y, ' m');
+                velocity.textContent = lost ? 'LOST LINK' : fmt(simState.rocket.vy, ' m/s');
+                maxAltitude.textContent = lost ? 'LOST LINK' : fmt(simState.stats.maxAltitude, ' m');
                 
                 const activeStages = simState.rocket.stages.filter(s => s.active);
                 const currentThrust = activeStages.reduce((sum, stage) => {
@@ -979,11 +1620,65 @@ let selectedRocketBlueprint = null;
                     return sum + (stage.fuelMass > 0 ? stage.maxThrust * simState.rocket.throttle : 0);
                 }, 0);
                 
-                thrust.textContent = fmt(currentThrust / 1000, ' kN');
+                thrust.textContent = lost ? 'LOST LINK' : fmt(currentThrust / 1000, ' kN');
                 const currentTWR = simState.rocket.totalMass > 0 ? currentThrust / (simState.rocket.totalMass * G) : 0;
-                twr.textContent = currentTWR.toFixed(2);
-                totalMass.textContent = fmt(simState.rocket.totalMass, ' kg');
-                apogee.textContent = simState.stats.apogee > 0 ? fmt(simState.stats.apogee, ' m') : 'N/A';
+                twr.textContent = lost ? 'LOST LINK' : currentTWR.toFixed(2);
+                totalMass.textContent = lost ? 'LOST LINK' : fmt(simState.rocket.totalMass, ' kg');
+                apogee.textContent = lost ? 'LOST LINK' : (simState.stats.apogee > 0 ? fmt(simState.stats.apogee, ' m') : 'N/A');
+
+                // Mission UI updates
+                missionNameEl.textContent = simState.mission.name;
+                const eff = simState.mission.effectiveDistanceMeters;
+                if (eff == null) {
+                    missionDistanceEl.textContent = 'N/A';
+                    missionCoveredEl.textContent = `${km(simState.mission.distanceCoveredMeters).toFixed(0)} km`;
+                    missionRemainingEl.textContent = 'N/A';
+                    missionBurnTimeEl.textContent = formatSeconds(remainingBurnTimeSec(simState.rocket.throttle));
+                    missionFuelSpentEl.textContent = `${Math.round((simState.rocket.totalFuelCapacity - totalRemainingFuelMass())).toLocaleString()} kg`;
+                    if (simState.mission.uncontrolled) {
+                        missionStatusEl.textContent = 'Uncontrolled descent';
+                        missionStatusEl.className = 'font-orbitron text-yellow-400';
+                    } else {
+                        missionStatusEl.textContent = 'Free flight';
+                        missionStatusEl.className = 'font-orbitron text-yellow-400';
+                    }
+                    updateMissionTrack();
+                } else {
+                    const dist = eff;
+                    const rawCovered = simState.mission.distanceCoveredMeters;
+                    const covered = Math.min(rawCovered, dist);
+                    const remaining = Math.max(0, dist - covered);
+                    missionDistanceEl.textContent = `${km(dist).toFixed(0)} km`;
+                    missionCoveredEl.textContent = `${km(covered).toFixed(0)} km`;
+                    missionRemainingEl.textContent = `${km(remaining).toFixed(0)} km`;
+                    const burnLeft = remainingBurnTimeSec(simState.rocket.throttle);
+                    missionBurnTimeEl.textContent = formatSeconds(burnLeft);
+                    missionFuelSpentEl.textContent = `${Math.round((simState.rocket.totalFuelCapacity - totalRemainingFuelMass())).toLocaleString()} kg`;
+                    updateMissionTrack();
+
+                    if (simState.mission.lostConnection) {
+                        missionStatusEl.textContent = 'Lost link';
+                        missionStatusEl.className = 'font-orbitron text-red-400';
+                    } else if (simState.mission.uncontrolled) {
+                        missionStatusEl.textContent = 'Uncontrolled descent';
+                        missionStatusEl.className = 'font-orbitron text-yellow-400';
+                    } else if (simState.mission.arrived) {
+                        const s = simState.mission.landing.state;
+                        const map = { approach: 'Approach hold', countdown: 'Auto-descent in 5s', auto: 'Auto-descent', manual: 'Manual descent', landed: 'Landed' };
+                        missionStatusEl.textContent = map[s] || 'Approach';
+                        missionStatusEl.className = s === 'landed' ? 'font-orbitron text-green-400' : 'font-orbitron text-yellow-400';
+                    } else {
+                        const speed = Math.sqrt(simState.rocket.vx*simState.rocket.vx + simState.rocket.vy*simState.rocket.vy);
+                        const potential = speed * burnLeft;
+                        if (potential >= remaining) {
+                            missionStatusEl.textContent = 'Likely to succeed';
+                            missionStatusEl.className = 'font-orbitron text-green-400';
+                        } else {
+                            missionStatusEl.textContent = 'Likely to fail';
+                            missionStatusEl.className = 'font-orbitron text-red-400';
+                        }
+                    }
+                }
 
                 if (simState.running) {
                     const elapsed = (performance.now() - simState.startTime) / 1000;
@@ -995,43 +1690,103 @@ let selectedRocketBlueprint = null;
                     timeElapsed.textContent = "00:00:00";
                 }
                 
+                // Update report button note visibility
+                if (simState.launched && !simState.running) {
+                    reportNote.classList.remove('hidden');
+                } else {
+                    reportNote.classList.add('hidden');
+                }
+
+                // Landing controls enable/disable
+                const arrived = simState.mission.arrived;
+                const L = simState.mission.landing || { state: 'none' };
+                const disableLanding = simState.mission.lostConnection || !arrived || L.state === 'landed';
+                if (autoLandCheckbox) autoLandCheckbox.disabled = simState.mission.lostConnection || simState.mission.uncontrolled;
+                if (landAutoBtn) landAutoBtn.disabled = disableLanding || simState.mission.uncontrolled || (L.state === 'auto' || L.state === 'countdown');
+                if (landManualBtn) landManualBtn.disabled = disableLanding || simState.mission.uncontrolled || (L.state === 'manual');
+                if (landHoldBtn) landHoldBtn.disabled = disableLanding || simState.mission.uncontrolled || (L.state === 'approach');
+
+                updateLandingOverlay();
                 updateStagingUI();
             }
             
             function updateStagingUI() {
                 stagingContainer.innerHTML = '';
+
+                // Summary: Max Fuel to Burn (total capacity)
+                const maxFuelBurn = (simState.rocket.totalFuelCapacity != null)
+                    ? simState.rocket.totalFuelCapacity
+                    : simState.rocket.stages.reduce((sum, s) => sum + (s.fuelCapacity ?? s.initialFuelMass ?? 0), 0);
+                const summary = document.createElement('div');
+                summary.className = 'p-2 mb-2 bg-gray-800 rounded border border-gray-700 text-sm';
+                const fuelSpent = Math.max(0, Math.round(simState.rocket.totalFuelCapacity - totalRemainingFuelMass()));
+                summary.innerHTML = `
+                    <div class="flex justify-between"><span class="text-gray-400">Max Fuel to Burn</span><span class="font-orbitron text-white">${Math.round(maxFuelBurn).toLocaleString()} kg</span></div>
+                    <div class="flex justify-between"><span class="text-gray-400">Fuel Spent</span><span class="font-orbitron text-white">${fuelSpent.toLocaleString()} kg</span></div>
+                `;
+                stagingContainer.appendChild(summary);
+
                 simState.rocket.stages.slice().reverse().forEach((stage, index) => {
                     const reversedIndex = simState.rocket.stages.length - 1 - index;
-                    const fuelPercentage = (stage.fuelMass / stage.initialFuelMass) * 100;
+                    const capacity = stage.fuelCapacity ?? stage.initialFuelMass ?? 0;
+                    const fuelPercentage = capacity > 0 ? (stage.fuelMass / capacity) * 100 : 0;
                     
                     const container = document.createElement('div');
                     container.className = `p-2 rounded mb-2 border-2 ${reversedIndex === simState.rocket.currentStage && !stage.separated ? 'border-cyan-400' : 'border-gray-600'} ${stage.separated ? 'opacity-40' : ''}`;
                     
                     let statusHtml;
                     if (stage.separated) {
-                         statusHtml = `<span class="text-gray-500 font-bold">JETTISONED</span>`;
+                         statusHtml = `<span class=\"text-gray-500 font-bold\">JETTISONED</span>`;
                     } else if (stage.active && stage.fuelMass > 0) {
-                         statusHtml = `<span class="text-green-400 font-bold">ACTIVE</span>`;
+                         statusHtml = `<span class=\"text-green-400 font-bold\">ACTIVE</span>`;
                     } else if (stage.active && stage.fuelMass <= 0) {
-                        statusHtml = `<span class="text-red-400 font-bold">DEPLETED</span>`;
+                        statusHtml = `<span class=\"text-red-400 font-bold\">DEPLETED</span>`;
                     } else {
-                         statusHtml = `<span class="text-yellow-500 font-bold">AWAITING</span>`;
+                         statusHtml = `<span class=\"text-yellow-500 font-bold\">AWAITING</span>`;
                     }
 
+                    const fuelText = `${Math.max(0, Math.round(stage.fuelMass)).toLocaleString()} / ${Math.round(capacity).toLocaleString()} kg`;
+
                     container.innerHTML = `
-                        <div class="flex justify-between items-center text-sm font-bold">
+                        <div class=\"flex justify-between items-center text-sm font-bold\">
                             <span>STAGE ${reversedIndex + 1}: ${stage.name}</span>
                             ${statusHtml}
                         </div>
-                        <div class="w-full bg-gray-700 rounded-full h-2.5 mt-1">
-                            <div class="bg-green-500 h-2.5 rounded-full" style="width: ${fuelPercentage}%"></div>
+                        <div class=\"w-full bg-gray-700 rounded-full h-2.5 mt-1\">
+                            <div class=\"bg-green-500 h-2.5 rounded-full\" style=\"width: ${fuelPercentage}%\"></div>
                         </div>
+                        <div class=\"mt-1 text-xs text-gray-300 text-right\">${fuelText}</div>
                     `;
                     stagingContainer.appendChild(container);
                 });
             }
 
     
+            function renderMissionTargets() {
+                if (!missionListContainer) return;
+                missionListContainer.innerHTML = '';
+                MISSIONS.forEach(m => {
+                    const card = document.createElement('div');
+                    const isSelected = selectedMissionTarget && selectedMissionTarget.id === m.id;
+                    card.className = `p-3 rounded-lg border-2 cursor-pointer transition-all ${isSelected ? 'border-cyan-400' : 'border-gray-700 hover:border-cyan-400'} bg-gray-900`;
+                    const distText = m.distanceMeters == null ? 'N/A' : `${Math.round((m.distanceMeters / MISSION_DISTANCE_DIVISOR) / 1000).toLocaleString()} km (scaled)`;
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <div class="text-lg font-bold text-white">${m.name}</div>
+                                <div class="text-xs text-gray-400">Distance: ${distText}</div>
+                            </div>
+                            <div class="text-cyan-400 font-orbitron">SELECT</div>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        selectedMissionTarget = m;
+                        renderMissionTargets();
+                    });
+                    missionListContainer.appendChild(card);
+                });
+            }
+
             function renderHangarDashboard() {
                 rocketListContainer.innerHTML = ''; 
                 
@@ -1059,9 +1814,13 @@ let selectedRocketBlueprint = null;
                 });
             }
 
+            // Initial render of mission targets as well
+            renderMissionTargets();
+
             function selectRocket(rocketId) {
                 selectedRocketBlueprint = ROCKET_BLUEPRINTS.find(r => r.id === rocketId);
                 if (selectedRocketBlueprint) {
+                    if (!selectedMissionTarget) selectedMissionTarget = MISSIONS[0];
                     hangarDashboard.classList.add('hidden'); 
                     init(); 
                 } else {
@@ -1090,6 +1849,9 @@ let selectedRocketBlueprint = null;
                 setTimeout(() => messageDisplay.classList.remove('animate-ping'), 500);
             }
 
+            // Populate hangar UI on load
+            renderHangarDashboard();
+
             function handleIgnition() {
                 if (simState.launched) return;
                 simState.running = true;
@@ -1104,6 +1866,7 @@ let selectedRocketBlueprint = null;
                 stageButton.disabled = false; // Enable staging button after launch
                 engineShutdownButton.disabled = false;
                 abortButton.disabled = false;
+                generateReportButton.disabled = true; // Disable report until end of flight
             }
 
             // isAutomatic flag determines if this was called by fuel depletion
@@ -1137,6 +1900,12 @@ let selectedRocketBlueprint = null;
                 updateRocketVisualHeight(); 
                 
                 logMessage(`Stage ${currentStageIndex + 1} separated. Stage ${simState.rocket.currentStage + 1} ignition.`);
+            }
+
+            function setThrottlePercent(percent) {
+                const p = Math.max(0, Math.min(100, Math.round(percent)));
+                throttleSlider.value = p;
+                throttleSlider.dispatchEvent(new Event('input'));
             }
 
             function handleThrottleChange(e) {
@@ -1181,10 +1950,22 @@ let selectedRocketBlueprint = null;
                 if (!simState.launched || simState.simulation.aborted) return;
                 simState.simulation.aborted = true;
                 simState.rocket.engineShutdown = true;
-                simState.running = false;
+                simState.running = false; // stop physics updates
                 setStatus('ABORTED', 'red', false);
-                logMessage('Mission aborted by user command!');
+                logMessage('Mission aborted by user! Initiating mid-air destruct.');
+
+                // Mid-air explosion visual
+                simState.crash.crashed = true;
+                simState.crash.explosionTime = performance.now();
+                createExplosionParticles();
+
+                // Disable interactive controls on abort
+                throttleSlider.disabled = true;
+                stageButton.disabled = true;
+                engineShutdownButton.disabled = true;
                 abortButton.disabled = true;
+
+                generateReportButton.disabled = false; // Enable report generation
             }
             
             function handlePause() {
@@ -1195,6 +1976,10 @@ let selectedRocketBlueprint = null;
             }
             
             function handleReset() {
+                if (simState && simState.mission) {
+                    simState.mission.distanceCoveredMeters = 0;
+                    simState.mission.lostConnection = false;
+                }
                 simState.simulation.paused = false;
                 simState.simulation.aborted = false;
                 pauseButton.textContent = 'PAUSE';
@@ -1213,6 +1998,182 @@ let selectedRocketBlueprint = null;
                 ctx.scale(dpr, dpr);
             }
 
+            // --- Gemini API Functions for Mission Report ---
+            
+            /**
+             * Exponential backoff utility for fetching.
+             */
+            async function exponentialBackoffFetch(url, options, retries = 5, delay = 1000) {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url, options);
+                        if (!response.ok) {
+                            // Non-retryable errors (400, 401, 403)
+                            if (response.status === 400 || response.status === 401 || response.status === 403) {
+                                const errorJson = await response.json();
+                                throw new Error(errorJson.error.message || `API failed with status ${response.status}`);
+                            }
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response;
+                    } catch (error) {
+                        if (i === retries - 1) {
+                            console.error("Fetch failed after all retries:", error);
+                            throw error;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, delay * (2 ** i) + Math.random() * 1000));
+                    }
+                }
+            }
+
+
+            /**
+             * Generates a structured mission report using the Gemini API.
+             */
+            async function generateMissionReport() {
+                if (!simState.launched || simState.running) return;
+
+                generateReportButton.disabled = true;
+                generateReportButton.textContent = "ANALYZING...";
+                reportContent.innerHTML = '<p class="text-center text-gray-400 py-8"><svg class="animate-spin h-5 w-5 mr-3 inline-block text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating complex mission report...</p>';
+                reportModal.classList.remove('hidden');
+
+                const totalDuration = simState.flightData.time.length > 0 ? parseFloat(simState.flightData.time[simState.flightData.time.length - 1]) : 0;
+                const finalStatus = simState.crash.crashed ? "Crashed" : simState.simulation.aborted ? "Aborted" : "Simulation Ended";
+                const maxVelocity = simState.flightData.velocity.reduce((max, v) => Math.max(max, v), 0);
+                
+                // Summarize staging events
+                const stagingSummary = simState.rocket.stages.map((stage, index) => ({
+                    stageIndex: index + 1,
+                    name: stage.name,
+                    separated: stage.separated,
+                    // Only report remaining fuel if it was separated or the flight ended while it was active
+                    fuelRemaining: stage.separated || (index === simState.rocket.currentStage && !simState.running) ? stage.fuelMass.toFixed(0) : 'N/A'
+                }));
+
+                // Construct the detailed prompt and system instruction
+                const missionData = {
+                    rocketName: selectedRocketBlueprint.name,
+                    finalStatus: finalStatus,
+                    durationSeconds: totalDuration,
+                    maxAltitudeMeters: simState.stats.maxAltitude.toFixed(2),
+                    maxVelocityMetersPerSecond: maxVelocity.toFixed(2),
+                    finalTWR: (simState.rocket.totalMass > 0 ? (simState.rocket.stages.filter(s=>s.active).reduce((sum, s) => sum + s.maxThrust * simState.rocket.throttle, 0) / (simState.rocket.totalMass * G)) : 0).toFixed(2),
+                    isCrashed: simState.crash.crashed,
+                    stagingEvents: stagingSummary,
+                };
+
+                const systemPrompt = "You are a highly experienced aerospace engineer specializing in post-flight analysis. Your task is to analyze the provided mission data and generate a structured JSON report. The analysis should be concise, professional, and focus on physical performance, success factors, and clear recommendations. The overall mission goal is to achieve orbital velocity and altitude (not simulated here, but use the data to comment on potential readiness). Do not use markdown inside the text fields.";
+                
+                const userQuery = `Analyze the following rocket launch mission data and generate a structured report. Simulation data: ${JSON.stringify(missionData)}`;
+
+                const responseSchema = {
+                    type: "OBJECT",
+                    properties: {
+                        missionTitle: { type: "STRING", description: "A concise, professional title for the report." },
+                        outcomeSummary: { type: "STRING", description: "A single paragraph summarizing the flight outcome (success, failure, or partial success) and the reason the simulation ended." },
+                        performanceMetrics: {
+                            type: "OBJECT",
+                            properties: {
+                                maxAltitude: { type: "STRING", description: "Reported Max Altitude (e.g., 50.12 km)" },
+                                maxVelocity: { type: "STRING", description: "Reported Max Velocity (e.g., 1.5 km/s)" },
+                                duration: { type: "STRING", description: "Total Flight Duration (e.g., 150 seconds)" },
+                            },
+                        },
+                        keyFindings: {
+                            type: "ARRAY",
+                            items: { type: "STRING" },
+                            description: "A bulleted list of 3-5 key observations about the flight performance (e.g., early staging, low thrust-to-weight ratio)."
+                        },
+                        recommendations: {
+                            type: "STRING",
+                            description: "A paragraph of specific, actionable advice for the next flight attempt to improve performance or avoid the identified issues."
+                        }
+                    },
+                    required: ["missionTitle", "outcomeSummary", "performanceMetrics", "keyFindings", "recommendations"],
+                };
+
+                try {
+                    const payload = {
+                        contents: [{ parts: [{ text: userQuery }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: responseSchema
+                        }
+                    };
+
+                    const response = await exponentialBackoffFetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    
+                    if (!jsonText) {
+                        throw new Error("Gemini API returned no text content.");
+                    }
+
+                    const report = JSON.parse(jsonText);
+                    
+                    displayReport(report);
+
+                } catch (error) {
+                    logMessage(`Report Generation Failed: ${error.message}`);
+                    console.error("Gemini API Error:", error);
+                    reportContent.innerHTML = `<p class="text-red-400 text-center py-4">Error generating report: ${error.message || 'Check console for details.'}</p>`;
+                } finally {
+                    generateReportButton.disabled = false;
+                    generateReportButton.textContent = "GENERATE REPORT ✨";
+                }
+            }
+
+            /**
+             * Renders the structured report JSON into the modal UI.
+             */
+            function displayReport(report) {
+                const kmAlt = (parseFloat(report.performanceMetrics.maxAltitude) / 1000).toFixed(2);
+                const kmVel = (parseFloat(report.performanceMetrics.maxVelocity) / 1000).toFixed(2);
+
+                let html = `
+                    <div class="bg-gray-900 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-xl font-bold text-green-400 font-orbitron mb-1">${report.missionTitle}</h3>
+                        <p class="text-sm text-gray-500">Analysis complete by Gemini Aerospace Analyst.</p>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-cyan-400 mt-4">1. Outcome Summary</h3>
+                    <p>${report.outcomeSummary}</p>
+                    
+                    <h3 class="text-lg font-bold text-cyan-400 mt-4">2. Performance Metrics</h3>
+                    <div class="grid grid-cols-3 gap-4 text-center bg-gray-900/50 p-3 rounded-lg">
+                        <div>
+                            <span class="text-sm text-gray-400 block">Max Altitude</span>
+                            <span class="text-xl font-orbitron text-white">${kmAlt} km</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-400 block">Max Velocity</span>
+                            <span class="text-xl font-orbitron text-white">${kmVel} km/s</span>
+                        </div>
+                        <div>
+                            <span class="text-sm text-gray-400 block">Flight Duration</span>
+                            <span class="text-xl font-orbitron text-white">${report.performanceMetrics.duration}</span>
+                        </div>
+                    </div>
+
+                    <h3 class="text-lg font-bold text-cyan-400 mt-4">3. Key Findings</h3>
+                    <ul class="list-disc list-inside space-y-1 ml-4">
+                        ${report.keyFindings.map(f => `<li>${f}</li>`).join('')}
+                    </ul>
+
+                    <h3 class="text-lg font-bold text-cyan-400 mt-4">4. Recommendations</h3>
+                    <p>${report.recommendations}</p>
+                `;
+                reportContent.innerHTML = html;
+            }
+
+
             ignitionButton.addEventListener('click', handleIgnition);
             stageButton.addEventListener('click', () => handleStageSeparation(false)); // Manual staging
             resetButton.addEventListener('click', handleReset);
@@ -1226,10 +2187,118 @@ let selectedRocketBlueprint = null;
             engineShutdownButton.addEventListener('click', handleEngineShutdown);
             abortButton.addEventListener('click', handleAbort);
             pauseButton.addEventListener('click', handlePause);
-            
+
+            function handleLandingKeys(e){
+                if (!simState?.mission?.arrived || simState.mission.lostConnection || simState.mission.uncontrolled) return;
+                const L = simState.mission.landing || { state: 'none' };
+                const k = e.key.toLowerCase();
+                if (k === 'g') { handleBeginAutoDescent(); return; }
+                if (k === 'm') { handleManualDescent(); return; }
+                if (k === 'h') { handleHold(); return; }
+                if (L.state !== 'manual' && L.state !== 'approach' && L.state !== 'countdown') return;
+                switch (k) {
+                    case 'arrowup': setThrottlePercent((parseInt(throttleSlider.value,10)||0) + 5); break;
+                    case 'arrowdown': setThrottlePercent((parseInt(throttleSlider.value,10)||0) - 5); break;
+                    case 'w': pitchSlider.value = Math.min(15, parseInt(pitchSlider.value,10)||0 + 1); pitchSlider.dispatchEvent(new Event('input')); break;
+                    case 's': pitchSlider.value = Math.max(-15, parseInt(pitchSlider.value,10)||0 - 1); pitchSlider.dispatchEvent(new Event('input')); break;
+                    case 'a': yawSlider.value = Math.max(-15, parseInt(yawSlider.value,10)||0 - 1); yawSlider.dispatchEvent(new Event('input')); break;
+                    case 'd': yawSlider.value = Math.min(15, parseInt(yawSlider.value,10)||0 + 1); yawSlider.dispatchEvent(new Event('input')); break;
+                    case ' ': e.preventDefault(); handleEngineShutdown(); break;
+                    default: return;
+                }
+            }
+            window.addEventListener('keydown', handleLandingKeys);
+
+            // Landing handlers
+            function handleToggleAutoLand(e){
+                if (!simState || !simState.mission) return;
+                simState.mission.landing.autoEnabled = !!e.target.checked;
+            }
+            function handleBeginAutoDescent(){
+                if (!simState.mission.arrived) return;
+                const L = simState.mission.landing;
+                L.autoEnabled = true;
+                L.countdownEndTime = performance.now() + 5000;
+                L.state = 'countdown';
+                setStatus('APPROACH HOLD', 'yellow', true);
+                logMessage('Auto-descent initiated. Commencing in 5s...');
+            }
+            function handleManualDescent(){
+                if (!simState.mission.arrived) return;
+                const L = simState.mission.landing;
+                L.state = 'manual';
+                logMessage('Manual descent engaged.');
+            }
+            function handleHold(){
+                if (!simState.mission.arrived) return;
+                const L = simState.mission.landing;
+                L.state = 'approach';
+                simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.engineShutdown = true;
+                setStatus('APPROACH HOLD', 'yellow', true);
+                logMessage('Holding at approach.');
+            }
+            autoLandCheckbox.addEventListener('change', handleToggleAutoLand);
+            landAutoBtn.addEventListener('click', handleBeginAutoDescent);
+            landManualBtn.addEventListener('click', handleManualDescent);
+            landHoldBtn.addEventListener('click', handleHold);
+
+            // New Custom Builder elements
+            const customBuilderModal = document.getElementById('custom-builder-modal');
+            const openCustomBuilderBtn = document.getElementById('open-custom-builder-btn');
+            const closeCustomBuilderBtn = document.getElementById('close-custom-builder-btn');
+            const customRocketNameInput = document.getElementById('custom-rocket-name');
+            const customPayloadMassInput = document.getElementById('custom-payload-mass');
+            const customStagesContainer = document.getElementById('custom-stages-container');
+            const addStageBtn = document.getElementById('add-stage-btn');
+            const saveAndLaunchBtn = document.getElementById('save-and-launch-btn');
+            const analyzeRocketBtn = document.getElementById('analyze-rocket-btn');
+            const aiSuggestionText = document.getElementById('ai-suggestion-text');
+
+            // New AI event listeners
+            generateReportButton.addEventListener('click', generateMissionReport);
+            closeReportModal.addEventListener('click', () => {
+                reportModal.classList.add('hidden');
+            });
+
+            // Custom Builder event listeners
+            openCustomBuilderBtn.addEventListener('click', () => {
+                customBuilderModal.classList.remove('hidden');
+                if (customRocketStages.length === 0) {
+                    addDefaultStage();
+                } else {
+                    renderCustomStages();
+                }
+            });
+            // Also allow clicking the entire card
+            document.getElementById('create-custom-rocket-card').addEventListener('click', () => {
+                customBuilderModal.classList.remove('hidden');
+                if (customRocketStages.length === 0) {
+                    addDefaultStage();
+                } else {
+                    renderCustomStages();
+                }
+            });
+            closeCustomBuilderBtn.addEventListener('click', () => {
+                customBuilderModal.classList.add('hidden');
+            });
+            addStageBtn.addEventListener('click', addDefaultStage);
+            saveAndLaunchBtn.addEventListener('click', () => {
+                const customData = getCustomRocketData();
+                if (customData.stages.length === 0) {
+                    alert('Please add at least one stage.');
+                    return;
+                }
+                selectedRocketBlueprint = customData;
+                customBuilderModal.classList.add('hidden');
+                hangarDashboard.classList.add('hidden');
+                init();
+            });
+            analyzeRocketBtn.addEventListener('click', analyzeRocketForTWR);
+
             window.addEventListener('resize', resizeCanvas);
-            
-            init();
+
+            // Render the hangar dashboard initially
+            renderHangarDashboard();
         });
     </script>
 </body>

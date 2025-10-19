@@ -113,6 +113,45 @@
             </div>
             <button id="close-report-modal" class="mt-6 w-full p-3 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all duration-200">CLOSE</button>
         </div>
+    </div>    <!-- CUSTOM ROCKET BUILDER MODAL (Moved from inside aside) -->
+    <div id="custom-builder-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl border border-purple-500/50 max-h-[95vh] overflow-y-auto">
+            <h2 class="text-3xl font-bold font-orbitron text-purple-400 mb-6 text-center border-b border-gray-700 pb-3">CUSTOM ROCKET DESIGN 🛠️</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 space-y-4">
+                    <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-xl font-bold text-cyan-400 mb-3">VEHICLE SPECS</h3>
+                        <label class="block mb-2">
+                            <span class="text-sm text-gray-400">Rocket Name</span>
+                            <input type="text" id="custom-rocket-name" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white font-orbitron" value="My Custom Rocket" required>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-gray-400">Payload Mass (kg)</span>
+                            <input type="number" id="custom-payload-mass" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white font-orbitron" value="1000" min="10" required>
+                        </label>
+                    </div>
+
+                    <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
+                        <h3 class="text-xl font-bold text-cyan-400 mb-3">AI THRUST ANALYSIS</h3>
+                        <button id="analyze-rocket-btn" class="w-full p-3 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-all duration-200">ANALYZE THRUST 🧠</button>
+                        <p id="ai-suggestion-text" class="text-sm text-gray-400 mt-3"></p>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <h3 class="text-xl font-bold text-cyan-400 mb-3">STAGE CONFIGURATION</h3>
+                    <div id="custom-stages-container" class="space-y-4 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                        </div>
+                    <button id="add-stage-btn" class="mt-4 w-full p-2 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-all">ADD NEW STAGE</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mt-8">
+                <button id="save-and-launch-btn" class="p-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">SAVE & LAUNCH</button>
+                <button id="close-custom-builder-btn" class="p-3 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all duration-200">CANCEL</button>
+            </div>
+        </div>
     </div>
     
     <!-- Main Content -->
@@ -273,45 +312,7 @@
                         <button id="reset-button" class="w-full p-2 bg-red-700 hover:bg-red-600 rounded-lg font-bold transition-all duration-200">RESET</button>
                      </div>
 
-                     <div id="custom-builder-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-5xl border border-purple-500/50 max-h-[95vh] overflow-y-auto">
-            <h2 class="text-3xl font-bold font-orbitron text-purple-400 mb-6 text-center border-b border-gray-700 pb-3">CUSTOM ROCKET DESIGN 🛠️</h2>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-1 space-y-4">
-                    <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                        <h3 class="text-xl font-bold text-cyan-400 mb-3">VEHICLE SPECS</h3>
-                        <label class="block mb-2">
-                            <span class="text-sm text-gray-400">Rocket Name</span>
-                            <input type="text" id="custom-rocket-name" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white font-orbitron" value="My Custom Rocket" required>
-                        </label>
-                        <label class="block">
-                            <span class="text-sm text-gray-400">Payload Mass (kg)</span>
-                            <input type="number" id="custom-payload-mass" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded text-white font-orbitron" value="1000" min="10" required>
-                        </label>
-                    </div>
-
-                    <div class="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                        <h3 class="text-xl font-bold text-cyan-400 mb-3">AI THRUST ANALYSIS</h3>
-                        <button id="analyze-rocket-btn" class="w-full p-3 bg-green-600 hover:bg-green-500 rounded-lg font-bold transition-all duration-200">ANALYZE THRUST 🧠</button>
-                        <p id="ai-suggestion-text" class="text-sm text-gray-400 mt-3"></p>
-                    </div>
-                </div>
-
-                <div class="lg:col-span-2">
-                    <h3 class="text-xl font-bold text-cyan-400 mb-3">STAGE CONFIGURATION</h3>
-                    <div id="custom-stages-container" class="space-y-4 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
-                        </div>
-                    <button id="add-stage-btn" class="mt-4 w-full p-2 bg-blue-600 hover:bg-blue-500 rounded font-bold transition-all">ADD NEW STAGE</button>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4 mt-8">
-                <button id="save-and-launch-btn" class="p-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed">SAVE & LAUNCH</button>
-                <button id="close-custom-builder-btn" class="p-3 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all duration-200">CANCEL</button>
-            </div>
-        </div>
-    </div>
                 </div>
 
             </div>

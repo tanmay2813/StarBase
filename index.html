@@ -233,20 +233,7 @@
                         <button id="abort-button" class="w-full p-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold transition-all duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>ABORT</button>
                     </div>
                     
-                    <!-- Gimbal Control -->
-                    <div class="mb-4">
-                        <label class="block mb-2 text-sm font-bold">GIMBAL CONTROL</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label for="pitch-slider" class="block mb-1 text-xs">PITCH (<span id="pitch-value">0</span>°)</label>
-                                <input type="range" id="pitch-slider" min="-15" max="15" value="0" class="w-full">
-                            </div>
-                            <div>
-                                <label for="yaw-slider" class="block mb-1 text-xs">YAW (<span id="yaw-value">0</span>°)</label>
-                                <input type="range" id="yaw-slider" min="-15" max="15" value="0" class="w-full">
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
                 
                 <!-- Landing Control -->
@@ -424,10 +411,7 @@ let customRocketStages = [];
             // New control elements
             const engineShutdownButton = document.getElementById('engine-shutdown');
             const abortButton = document.getElementById('abort-button');
-            const pitchSlider = document.getElementById('pitch-slider');
-            const pitchValue = document.getElementById('pitch-value');
-            const yawSlider = document.getElementById('yaw-slider');
-            const yawValue = document.getElementById('yaw-value');
+
             const timeScaleSlider = document.getElementById('time-scale');
             const timeScaleValue = document.getElementById('time-scale-value');
             const zoomSlider = document.getElementById('zoom-slider');
@@ -483,8 +467,7 @@ let customRocketStages = [];
                         currentStage: 0,
                         totalMass: 0, // kg
                         throttle: 0, // 0 to 1
-                        pitch: 0, // gimbal pitch in degrees
-                        yaw: 0, // gimbal yaw in degrees
+
                         engineShutdown: false,
                         
                         stages: [
@@ -777,8 +760,6 @@ let customRocketStages = [];
                 updateStagingUI();
 
                 throttleSlider.value = 0;
-                pitchSlider.value = 0;
-                yawSlider.value = 0;
                 timeScaleSlider.value = 1;
                 zoomSlider.value = 1;
                 ignitionButton.disabled = false;
@@ -978,16 +959,9 @@ let customRocketStages = [];
                     if (stage.fuelMass > 0 && !simState.rocket.engineShutdown) {
                         const stageThrust = stage.maxThrust * simState.rocket.throttle;
                         
-                        // Apply gimbal control (convert degrees to radians)
-                        const pitchRad = simState.rocket.pitch * Math.PI / 180;
-                        const yawRad = simState.rocket.yaw * Math.PI / 180;
-                        
-                        // Thrust components
-                        const thrustY = stageThrust * Math.cos(pitchRad);
-                        const thrustX = stageThrust * Math.sin(yawRad) * Math.cos(pitchRad);
-                        
-                        currentThrust += thrustY; // Vertical thrust
-                        simState.rocket.ax += thrustX / simState.rocket.totalMass; // Horizontal acceleration
+                        // Thrust is purely vertical without gimbal control
+                        currentThrust += stageThrust; // Vertical thrust
+                        // No horizontal acceleration from gimbal, simState.rocket.ax remains 0 or from other sources.
                         
                         isCurrentStageSpent = false;
                         
@@ -1573,7 +1547,6 @@ let customRocketStages = [];
                 overlay.classList.remove('hidden');
                 const L = simState.mission.landing;
                 const tPct = Math.round((simState.rocket.throttle || 0) * 100);
-                const attOk = Math.abs(simState.rocket.pitch) <= 2 && Math.abs(simState.rocket.yaw) <= 2;
                 const alt = simState.rocket.y;
                 const vy = simState.rocket.vy;
                 const safeRate = alt > 100 ? (vy <= -15) : alt > 10 ? (vy <= -5) : (vy <= -1);
@@ -1586,7 +1559,6 @@ let customRocketStages = [];
                         <ul class="space-y-1">
                             <li>${check(tPct <= 5)} Reduce throttle below 5% (Arrow Down)</li>
                             <li>${check(simState.rocket.engineShutdown)} Cut engine (Space)</li>
-                            <li>${check(attOk)} Align attitude: pitch/yaw ~0° (W/S, A/D)</li>
                             <li>${check(safeRate)} Safe descent rate (vy ${vy.toFixed(1)} m/s)</li>
                             <li>${check(L.state==='landed')} Touchdown</li>
                         </ul>
@@ -1914,17 +1886,7 @@ let customRocketStages = [];
                 throttleValue.textContent = value;
             }
             
-            function handlePitchChange(e) {
-                const value = parseInt(e.target.value, 10);
-                simState.rocket.pitch = value;
-                pitchValue.textContent = value;
-            }
-            
-            function handleYawChange(e) {
-                const value = parseInt(e.target.value, 10);
-                simState.rocket.yaw = value;
-                yawValue.textContent = value;
-            }
+
             
             function handleTimeScaleChange(e) {
                 const value = parseFloat(e.target.value);
@@ -2179,9 +2141,7 @@ let customRocketStages = [];
             resetButton.addEventListener('click', handleReset);
             throttleSlider.addEventListener('input', handleThrottleChange);
             
-            // New control event listeners
-            pitchSlider.addEventListener('input', handlePitchChange);
-            yawSlider.addEventListener('input', handleYawChange);
+
             timeScaleSlider.addEventListener('input', handleTimeScaleChange);
             zoomSlider.addEventListener('input', handleZoomChange);
             engineShutdownButton.addEventListener('click', handleEngineShutdown);
@@ -2199,10 +2159,6 @@ let customRocketStages = [];
                 switch (k) {
                     case 'arrowup': setThrottlePercent((parseInt(throttleSlider.value,10)||0) + 5); break;
                     case 'arrowdown': setThrottlePercent((parseInt(throttleSlider.value,10)||0) - 5); break;
-                    case 'w': pitchSlider.value = Math.min(15, parseInt(pitchSlider.value,10)||0 + 1); pitchSlider.dispatchEvent(new Event('input')); break;
-                    case 's': pitchSlider.value = Math.max(-15, parseInt(pitchSlider.value,10)||0 - 1); pitchSlider.dispatchEvent(new Event('input')); break;
-                    case 'a': yawSlider.value = Math.max(-15, parseInt(yawSlider.value,10)||0 - 1); yawSlider.dispatchEvent(new Event('input')); break;
-                    case 'd': yawSlider.value = Math.min(15, parseInt(yawSlider.value,10)||0 + 1); yawSlider.dispatchEvent(new Event('input')); break;
                     case ' ': e.preventDefault(); handleEngineShutdown(); break;
                     default: return;
                 }

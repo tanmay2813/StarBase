@@ -1999,10 +1999,25 @@ let customRocketStages = [];
                 generateReportButton.disabled = true;
                 generateReportButton.textContent = "ANALYZING...";
                 reportContent.innerHTML = '<p class="text-center text-gray-400 py-8"><svg class="animate-spin h-5 w-5 mr-3 inline-block text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating complex mission report...</p>';
-                reportModal.classList.remove('hidden');
+                reportModal.classList.remove('hidden');                const totalDuration = simState.flightData.time.length > 0 ? parseFloat(simState.flightData.time[simState.flightData.time.length - 1]) : 0;
 
-                const totalDuration = simState.flightData.time.length > 0 ? parseFloat(simState.flightData.time[simState.flightData.time.length - 1]) : 0;
-                const finalStatus = simState.crash.crashed ? "Crashed" : simState.simulation.aborted ? "Aborted" : "Simulation Ended";
+                let finalStatus;
+                let flightEndedSuccessfully = false;
+
+                if (simState.crash.crashed) {
+                    finalStatus = "Crashed";
+                } else if (simState.simulation.aborted) {
+                    finalStatus = "Aborted";
+                } else if (simState.mission.landing.state === 'landed') {
+                    finalStatus = "Landed Successfully";
+                    flightEndedSuccessfully = true;
+                } else if (simState.mission.lostConnection) {
+                    finalStatus = "Lost Connection in Space";
+                } else if (simState.mission.uncontrolled) {
+                    finalStatus = "Uncontrolled Descent (Fuel Depleted in Atmosphere)";
+                } else {
+                    finalStatus = "Simulation Ended (Unknown Reason)"; // Fallback for other non-running states
+                }
                 const maxVelocity = simState.flightData.velocity.reduce((max, v) => Math.max(max, v), 0);
                 
                 // Summarize staging events
@@ -2022,7 +2037,7 @@ let customRocketStages = [];
                     maxAltitudeMeters: simState.stats.maxAltitude.toFixed(2),
                     maxVelocityMetersPerSecond: maxVelocity.toFixed(2),
                     finalTWR: (simState.rocket.totalMass > 0 ? (simState.rocket.stages.filter(s=>s.active).reduce((sum, s) => sum + s.maxThrust * simState.rocket.throttle, 0) / (simState.rocket.totalMass * G)) : 0).toFixed(2),
-                    isCrashed: simState.crash.crashed,
+                    isCrashed: simState.crash.crashed,                    flightEndedSuccessfully: flightEndedSuccessfully,
                     stagingEvents: stagingSummary,
                 };
 

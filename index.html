@@ -894,8 +894,8 @@ let customRocketStages = [];
                 const L = simState.mission.landing;
                 // Default: hold position if in approach
                 if (L.state === 'approach' || L.state === 'none') {
-                    simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.ay = 0; simState.rocket.ax = 0;
-                    simState.rocket.engineShutdown = true;
+                    simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.ay = 0; simState.rocket.ax = 0;                    simState.rocket.engineShutdown = true;
+                    setThrottlePercent(0); // Ensure throttle is zero
                     if (L.state === 'none') L.state = 'approach';
                     if (L.autoEnabled && L.countdownEndTime === 0) {
                         L.countdownEndTime = performance.now() + 5000;
@@ -2179,18 +2179,23 @@ let customRocketStages = [];
                 L.state = 'countdown';
                 setStatus('APPROACH HOLD', 'yellow', true);
                 logMessage('Auto-descent initiated. Commencing in 5s...');
-            }
-            function handleManualDescent(){
+            }            function handleManualDescent(){
                 if (!simState.mission.arrived) return;
                 const L = simState.mission.landing;
                 L.state = 'manual';
+                // When going manual, ensure the engine is available for control if it wasn't already.
+                if (simState.rocket.engineShutdown) {
+                    simState.rocket.engineShutdown = false;
+                    engineShutdownButton.textContent = 'ENGINE CUT'; // Update UI
+                }
                 logMessage('Manual descent engaged.');
             }
             function handleHold(){
-                if (!simState.mission.arrived) return;
-                const L = simState.mission.landing;
+                if (!simState.mission.arrived) return;                const L = simState.mission.landing;
                 L.state = 'approach';
-                simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.engineShutdown = true;
+                simState.rocket.vx = 0; simState.rocket.vy = 0;
+                simState.rocket.engineShutdown = true; // Still enforce shutdown in hold
+                setThrottlePercent(0); // Also set throttle to 0
                 setStatus('APPROACH HOLD', 'yellow', true);
                 logMessage('Holding at approach.');
             }

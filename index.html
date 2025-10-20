@@ -273,21 +273,14 @@
                     </div>
                     
 
-                </div>
-                
-                <!-- Landing Control -->
+                </div>                 <!-- Landing Control -->
                 <div class="mb-4 bg-gray-900/50 p-3 rounded-lg border border-gray-700">
                     <label class="block mb-2 text-sm font-bold">LANDING</label>
                     <div class="space-y-2">
                         <label class="inline-flex items-center space-x-2">
-                            <input type="checkbox" id="auto-land-checkbox" class="h-4 w-4">
+                            <input type="checkbox" id="auto-land-checkbox" class="h-4 w-4" checked>
                             <span class="text-sm">Auto land on arrival</span>
                         </label>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button id="land-auto-btn" class="p-2 bg-green-700 hover:bg-green-600 rounded-lg font-bold text-xs disabled:bg-gray-600 disabled:cursor-not-allowed">BEGIN AUTO DESCENT</button>
-                            <button id="land-manual-btn" class="p-2 bg-blue-700 hover:bg-blue-600 rounded-lg font-bold text-xs disabled:bg-gray-600 disabled:cursor-not-allowed">MANUAL DESCENT</button>
-                            <button id="land-hold-btn" class="p-2 bg-yellow-700 hover:bg-yellow-600 rounded-lg font-bold text-xs disabled:bg-gray-600 disabled:cursor-not-allowed">HOLD</button>
-                        </div>
                     </div>
                 </div>
                 
@@ -417,13 +410,8 @@ let customRocketStages = [];
             const timeScaleValue = document.getElementById('time-scale-value');
             const zoomSlider = document.getElementById('zoom-slider');
             const zoomValue = document.getElementById('zoom-value');
-            const pauseButton = document.getElementById('pause-button');
-
-            // Landing controls
+            const pauseButton = document.getElementById('pause-button');            // Landing controls
             const autoLandCheckbox = document.getElementById('auto-land-checkbox');
-            const landAutoBtn = document.getElementById('land-auto-btn');
-            const landManualBtn = document.getElementById('land-manual-btn');
-            const landHoldBtn = document.getElementById('land-hold-btn');
 
             // New AI elements
             const reportModal = document.getElementById('report-modal');
@@ -730,7 +718,7 @@ let customRocketStages = [];
                 simState.mission.distanceCoveredMeters = 0;
                 simState.mission.lostConnection = false;
                 simState.mission.arrived = false;
-                simState.mission.uncontrolled = false;
+                simState.mission.uncontrolled = false;                // Initialize landing state. autoEnabled is controlled by the checkbox, which is checked by default in HTML.
                 simState.mission.landing = { autoEnabled: !!autoLandCheckbox?.checked, state: 'none', countdownEndTime: 0 };
 
                 // Load the stages and mass from the selected blueprint
@@ -889,19 +877,41 @@ let customRocketStages = [];
 
                 // Simple landing planet visual at ground when arrived
 
-            function processLanding(dt) {
-                if (!simState.mission.arrived) return;
+            function processLanding(dt) {                if (!simState.mission.arrived) return;
                 const L = simState.mission.landing;
-                // Default: hold position if in approach
-                if (L.state === 'approach' || L.state === 'none') {
-                    simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.ay = 0; simState.rocket.ax = 0;                    simState.rocket.engineShutdown = true;
-                    setThrottlePercent(0); // Ensure throttle is zero
-                    if (L.state === 'none') L.state = 'approach';
-                    if (L.autoEnabled && L.countdownEndTime === 0) {
+
+                // If currently in 'none' state, transition to 'approach' (hold) or 'countdown' based on autoEnabled
+                if (L.state === 'none') {
+                    if (L.autoEnabled) {
                         L.countdownEndTime = performance.now() + 5000;
                         L.state = 'countdown';
                         setStatus('APPROACH HOLD', 'yellow', true);
                         logMessage('Approach complete. Auto-descent in 5s...');
+                    } else {
+                        // If auto-land is not enabled, default to 'approach' (hold)
+                        L.state = 'approach';
+                        setStatus('APPROACH HOLD', 'yellow', true); // Update status for hold
+                        logMessage('Approach complete. Holding at destination. Toggle auto-land to descend.');
+                    }
+                    // Regardless of state change, ensure rocket is stopped for initial approach/hold
+                    simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.ay = 0; simState.rocket.ax = 0;
+                    simState.rocket.engineShutdown = true;
+                    setThrottlePercent(0);
+                    return; // Done with initial transition, let next frame handle further steps
+                }
+
+                // Handle 'approach' (hold) state when auto-land is disabled
+                if (L.state === 'approach') {
+                    // Stay in hold, no further action unless auto-land is re-enabled manually
+                    simState.rocket.vx = 0; simState.rocket.vy = 0; simState.rocket.ay = 0; simState.rocket.ax = 0;
+                    simState.rocket.engineShutdown = true;
+                    setThrottlePercent(0);
+                    // Check if auto-land was toggled ON while holding
+                    if (L.autoEnabled && L.countdownEndTime === 0) { // Only start countdown once
+                         L.countdownEndTime = performance.now() + 5000;
+                         L.state = 'countdown';
+                         setStatus('APPROACH HOLD', 'yellow', true);
+                         logMessage('Auto-descent initiated from hold. Commencing in 5s...');
                     }
                     return;
                 }
@@ -927,15 +937,16 @@ let customRocketStages = [];
                         logMessage('Touchdown confirmed.');
                         simState.running = false;
                         return;
-                    }
-
-                    // AUTO: smoothly reduce throttle to zero and cut engine; MANUAL: do not override throttle, only provide guidance
-                    if (L.state === 'auto') {
-                        const currentPct = parseInt(throttleSlider.value, 10) || 0;
-                        const nextPct = Math.max(0, currentPct - 20 * dt); // reduce ~20%/s
-                        setThrottlePercent(nextPct);
-                        if (nextPct <= 2) {
-                            if (!simState.rocket.engineShutdown) handleEngineShutdown();
+                    }                // AUTO: smoothly reduce throttle to zero and cut engine
+                if (L.state === 'auto') {
+                    const currentPct = parseInt(throttleSlider.value, 10) || 0;
+                    const nextPct = Math.max(0, currentPct - 20 * dt); // reduce ~20%/s
+                    setThrottlePercent(nextPct);
+                    if (nextPct <= 2) {
+                        if (!simState.rocket.engineShutdown) {
+                            simState.rocket.engineShutdown = true; // Direct flag set
+                            engineShutdownButton.textContent = 'ENGINE ON'; // Update UI
+                            logMessage('Auto-land: Engine cutoff.');
                         }
                     }
 
@@ -944,6 +955,7 @@ let customRocketStages = [];
                     const accel = Math.max(-20, Math.min(20, dv));
                     simState.rocket.vy += accel * dt;
                     simState.rocket.y += simState.rocket.vy * dt;
+                }
                 }
             }
 
@@ -1538,9 +1550,7 @@ let customRocketStages = [];
                 ctx.restore();
             }
 
-            function km(valMeters) { return (valMeters/1000); }
-
-            function updateLandingOverlay() {
+            function km(valMeters) { return (valMeters/1000); }            function updateLandingOverlay() {
                 const overlay = document.getElementById('landing-overlay');
                 if (!overlay) return;
                 const arrived = simState.mission.arrived;
@@ -1548,34 +1558,27 @@ let customRocketStages = [];
                 overlay.classList.remove('hidden');
                 const L = simState.mission.landing;
                 const tPct = Math.round((simState.rocket.throttle || 0) * 100);
-                const alt = simState.rocket.y;
                 const vy = simState.rocket.vy;
-                const safeRate = alt > 100 ? (vy <= -15) : alt > 10 ? (vy <= -5) : (vy <= -1);
-                const check = ok => ok ? '✅' : '⬜';
                 const countdownLeft = L.state === 'countdown' ? Math.max(0, Math.ceil((L.countdownEndTime - performance.now())/1000)) : 0;
-                if (L.state === 'manual' || L.state === 'approach' || L.state === 'countdown') {
+                
+                if (L.state === 'approach') {
                     overlay.innerHTML = `
-                        <div class="font-orbitron text-yellow-300 mb-1">MANUAL LANDING</div>
-                        ${L.state==='countdown'?`<div class="text-xs text-gray-300 mb-1">Auto in T-${countdownLeft}s (press M to take manual)</div>`:''}
-                        <ul class="space-y-1">
-                            <li>${check(tPct <= 5)} Reduce throttle below 5% (Arrow Down)</li>
-                            <li>${check(simState.rocket.engineShutdown)} Cut engine (Space)</li>
-                            <li>${check(safeRate)} Safe descent rate (vy ${vy.toFixed(1)} m/s)</li>
-                            <li>${check(L.state==='landed')} Touchdown</li>
+                        <div class="font-orbitron text-yellow-300 mb-1">HOLDING AT DESTINATION</div>
+                        <p class="text-xs text-gray-300 mb-1">Auto land is disabled. Activate it using the checkbox to begin descent.</p>
+                        <ul class="space-y-1 mt-2">
+                            <li>Throttle: ${tPct}%</li>
+                            <li>Vertical Speed: ${vy.toFixed(1)} m/s</li>
                         </ul>
-                        <div class="text-xs text-gray-400 mt-2">Shortcuts: G=Auto, M=Manual, H=Hold</div>
                     `;
-                } else {
-                    // Auto
+                } else { // countdown, auto, landed
                     overlay.innerHTML = `
                         <div class="font-orbitron text-green-300 mb-1">AUTO LANDING</div>
+                        ${L.state === 'countdown' ? `<div class="text-xs text-gray-300 mb-1">Auto-descent in T-${countdownLeft}s</div>` : ''}
                         <ul class="space-y-1">
-                            <li>${check(tPct <= 5)} Reducing throttle</li>
-                            <li>${check(simState.rocket.engineShutdown)} Engine cutoff</li>
-                            <li>${check(vy <= -0.5)} Controlled descent</li>
-                            <li>${check(L.state==='landed')} Touchdown</li>
+                            <li>Throttle: ${tPct}%</li>
+                            <li>Vertical Speed: ${vy.toFixed(1)} m/s</li>
+                            <li>Status: ${L.state === 'landed' ? 'Touchdown confirmed' : 'Controlled descent'}</li>
                         </ul>
-                        <div class="text-xs text-gray-400 mt-2">Press H to hold, M for manual</div>
                     `;
                 }
             }
@@ -1673,11 +1676,8 @@ let customRocketStages = [];
                 // Landing controls enable/disable
                 const arrived = simState.mission.arrived;
                 const L = simState.mission.landing || { state: 'none' };
-                const disableLanding = simState.mission.lostConnection || !arrived || L.state === 'landed';
+                const disableLanding = simState.mission.lostConnection || !arrived || L.state === 'landed';                // Landing controls enable/disable
                 if (autoLandCheckbox) autoLandCheckbox.disabled = simState.mission.lostConnection || simState.mission.uncontrolled;
-                if (landAutoBtn) landAutoBtn.disabled = disableLanding || simState.mission.uncontrolled || (L.state === 'auto' || L.state === 'countdown');
-                if (landManualBtn) landManualBtn.disabled = disableLanding || simState.mission.uncontrolled || (L.state === 'manual');
-                if (landHoldBtn) landHoldBtn.disabled = disableLanding || simState.mission.uncontrolled || (L.state === 'approach');
 
                 updateLandingOverlay();
                 updateStagingUI();
@@ -2147,62 +2147,31 @@ let customRocketStages = [];
             zoomSlider.addEventListener('input', handleZoomChange);
             engineShutdownButton.addEventListener('click', handleEngineShutdown);
             abortButton.addEventListener('click', handleAbort);
-            pauseButton.addEventListener('click', handlePause);
-
-            function handleLandingKeys(e){
-                if (!simState?.mission?.arrived || simState.mission.lostConnection || simState.mission.uncontrolled) return;
-                const L = simState.mission.landing || { state: 'none' };
-                const k = e.key.toLowerCase();
-                if (k === 'g') { handleBeginAutoDescent(); return; }
-                if (k === 'm') { handleManualDescent(); return; }
-                if (k === 'h') { handleHold(); return; }
-                if (L.state !== 'manual' && L.state !== 'approach' && L.state !== 'countdown') return;
-                switch (k) {
-                    case 'arrowup': setThrottlePercent((parseInt(throttleSlider.value,10)||0) + 5); break;
-                    case 'arrowdown': setThrottlePercent((parseInt(throttleSlider.value,10)||0) - 5); break;
-                    case ' ': e.preventDefault(); handleEngineShutdown(); break;
-                    default: return;
-                }
+            pauseButton.addEventListener('click', handlePause);            function handleLandingKeys(e){
+                // All interactive landing controls (including throttle/engine via keyboard) have been removed for a streamlined auto-landing experience.
+                // General simulation controls like pause/reset are handled by their respective UI buttons.
             }
-            window.addEventListener('keydown', handleLandingKeys);
+            // The listener for handleLandingKeys remains active, but the function body is now empty for landing-specific keys.
 
             // Landing handlers
             function handleToggleAutoLand(e){
                 if (!simState || !simState.mission) return;
                 simState.mission.landing.autoEnabled = !!e.target.checked;
-            }
-            function handleBeginAutoDescent(){
-                if (!simState.mission.arrived) return;
-                const L = simState.mission.landing;
-                L.autoEnabled = true;
-                L.countdownEndTime = performance.now() + 5000;
-                L.state = 'countdown';
-                setStatus('APPROACH HOLD', 'yellow', true);
-                logMessage('Auto-descent initiated. Commencing in 5s...');
-            }            function handleManualDescent(){
-                if (!simState.mission.arrived) return;
-                const L = simState.mission.landing;
-                L.state = 'manual';
-                // When going manual, ensure the engine is available for control if it wasn't already.
-                if (simState.rocket.engineShutdown) {
-                    simState.rocket.engineShutdown = false;
-                    engineShutdownButton.textContent = 'ENGINE CUT'; // Update UI
+                if (!simState.mission.landing.autoEnabled && simState.mission.arrived && simState.mission.landing.state !== 'landed') {
+                    // If auto-land is disabled while already arrived and not landed, transition to hold (approach)
+                    simState.mission.landing.state = 'approach';
+                    setStatus('APPROACH HOLD', 'yellow', true);
+                    logMessage('Auto-land disabled. Holding at destination.');
+                } else if (simState.mission.landing.autoEnabled && simState.mission.arrived && simState.mission.landing.state === 'approach') {
+                    // If auto-land is enabled while holding, start the countdown
+                    simState.mission.landing.countdownEndTime = performance.now() + 5000;
+                    simState.mission.landing.state = 'countdown';
+                    setStatus('APPROACH HOLD', 'yellow', true);
+                    logMessage('Auto-descent initiated from hold. Commencing in 5s...');
                 }
-                logMessage('Manual descent engaged.');
-            }
-            function handleHold(){
-                if (!simState.mission.arrived) return;                const L = simState.mission.landing;
-                L.state = 'approach';
-                simState.rocket.vx = 0; simState.rocket.vy = 0;
-                simState.rocket.engineShutdown = true; // Still enforce shutdown in hold
-                setThrottlePercent(0); // Also set throttle to 0
-                setStatus('APPROACH HOLD', 'yellow', true);
-                logMessage('Holding at approach.');
             }
             autoLandCheckbox.addEventListener('change', handleToggleAutoLand);
-            landAutoBtn.addEventListener('click', handleBeginAutoDescent);
-            landManualBtn.addEventListener('click', handleManualDescent);
-            landHoldBtn.addEventListener('click', handleHold);
+            // Removed event listeners for landAutoBtn, landManualBtn, landHoldBtn.
 
             // New Custom Builder elements
             const customBuilderModal = document.getElementById('custom-builder-modal');
